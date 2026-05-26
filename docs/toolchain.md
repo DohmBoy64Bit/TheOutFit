@@ -37,6 +37,33 @@ The installed CLI reports subcommands:
 - `init`
 - `recompile-tests`
 
+Verified project initialization command:
+
+```cmd
+D:\360RexGlue\TheOutFit\tools\rexglue-sdk\out\install\win-amd64\bin\rexglue.exe init --project-name TheOutFit --xex-path .\assets\game_files\default.xex --game-root .\assets\game_files --project-root .\TheOutFit_Port
+```
+
+Generated project:
+
+- `TheOutFit_Port\theoutfit_manifest.toml`
+- `TheOutFit_Port\CMakeLists.txt`
+- `TheOutFit_Port\CMakePresets.json`
+- `TheOutFit_Port\generated\rexglue.cmake`
+- `TheOutFit_Port\src\main.cpp`
+- `TheOutFit_Port\src\theoutfit_app.h`
+
+Verified generated project configure:
+
+```cmd
+call "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat"
+set PATH=C:\Program Files\LLVM\bin;%PATH%
+cd /d D:\360RexGlue\TheOutFit\TheOutFit_Port
+cmake --list-presets
+cmake --preset win-amd64-debug
+```
+
+Result: CMake found ReXGlue SDK `0.8.1.4-dev.ge8ce24f` at `D:\360RexGlue\TheOutFit\tools\rexglue-sdk\out\install\win-amd64\lib\cmake\rexglue` and generated build files under ignored `TheOutFit_Port\out\build\win-amd64-debug`.
+
 ## Local SDK Notes
 
 - The first configure attempt failed outside the Visual Studio developer environment because `oldnames.lib` and `msvcrtd.lib` were not visible to the linker.
