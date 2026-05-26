@@ -4,6 +4,7 @@ out/
 CMakeFiles/
 CMakeCache.txt
 cmake-build-*/
+TheOutFit_Port/generated/default/
 
 # Local environment
 .venv/

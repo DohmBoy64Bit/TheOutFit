@@ -71,7 +71,7 @@ cd /d D:\360RexGlue\TheOutFit\TheOutFit_Port
 ..\tools\rexglue-sdk\out\install\win-amd64\bin\rexglue.exe --log-level debug --log-file ..\docs\logs\codegen-first-debug.log codegen .\theoutfit_manifest.toml
 ```
 
-Result: ReXGlue reached analysis sealing, then failed with `UnresolvedCall (2)` for `0x821E7A68 from 0x8269F910` and `0x8226D6A0 from 0x82262790`. No `TheOutFit_Port\generated\default` directory was produced. Ghidra MCP disassembly corroborated the target addresses as executable code but did not corroborate the reported source branches.
+Result: ReXGlue reached analysis sealing, then failed with `UnresolvedCall (2)` for `0x821E7A68 from 0x8269F910` and `0x8226D6A0 from 0x82262790`. No `TheOutFit_Port\generated\default` directory was produced. Later Ghidra MCP context corroborated both source addresses as direct branches and both targets as executable code, so this was missing function coverage for orphaned executable code rather than a confirmed branch/source labeling bug.
 
 Verified stable `v0.8.0` A/B build:
 
@@ -93,6 +93,27 @@ cd /d D:\360RexGlue\TheOutFit\TheOutFit_Port
 
 Result: same `UnresolvedCall (2)` at `0x821E7A68 from 0x8269F910` and `0x8226D6A0 from 0x82262790`; no generated output. Therefore switching from `0.8.1.4-dev.ge8ce24f` to the stable `v0.8.0` tag does not resolve the first codegen blocker.
 
+Verified manual function seed codegen:
+
+```cmd
+cd /d D:\360RexGlue\TheOutFit\TheOutFit_Port
+..\tools\rexglue-sdk\out\install\win-amd64\bin\rexglue.exe --log-level debug --log-file ..\docs\logs\codegen-manual-functions-debug.log codegen .\theoutfit_manifest.toml
+```
+
+Result: ReXGlue loaded `config/manual_functions.toml`, added or updated 2 function entries, and codegen succeeded. It produced `TheOutFit_Port\generated\default` with 61 files totaling about 122.5 MB. That directory is ignored as reproducible generated output.
+
+Verified release build after codegen:
+
+```cmd
+call "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat"
+set PATH=C:\Program Files\LLVM\bin;%PATH%
+cd /d D:\360RexGlue\TheOutFit\TheOutFit_Port
+cmake --preset win-amd64-release
+cmake --build --preset win-amd64-release
+```
+
+Result: release configure/build succeeded and linked `theoutfit.exe` under ignored `TheOutFit_Port\out\build\win-amd64-release`.
+
 ## Local SDK Notes
 
 - The first configure attempt failed outside the Visual Studio developer environment because `oldnames.lib` and `msvcrtd.lib` were not visible to the linker.
@@ -101,3 +122,4 @@ Result: same `UnresolvedCall (2)` at `0x821E7A68 from 0x8269F910` and `0x8226D6A
 ## Open Items
 - Add the ReXGlue install `bin` directory to command sessions when invoking `rexglue` directly, or call `rexglue.exe` by full path.
 - Keep `tools/` ignored; do not commit the third-party SDK checkout, build output, install tree, or local tool binaries.
+- Debug build currently fails at link time because debug objects use `_ITERATOR_DEBUG_LEVEL=2` while installed SDK libraries such as `spdlog.lib` were built with `_ITERATOR_DEBUG_LEVEL=0`; use the verified release preset unless a debug SDK build is prepared.

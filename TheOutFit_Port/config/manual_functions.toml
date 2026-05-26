@@ -1,0 +1,10 @@
+# Manual function seeds verified with Ghidra MCP on 2026-05-26.
+# These are ReXGlue analysis hints for orphaned executable code.
+
+[functions."821E7A68"]
+size = 0x18
+name = "thunk_821E7A68_vtbl_10"
+
+[functions."8226D6A0"]
+end = 0x8226D9F8
+name = "sub_8226D6A0_manual"
