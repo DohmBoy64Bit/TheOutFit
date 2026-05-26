@@ -138,6 +138,8 @@ theoutfit.exe --game_data_root=D:\360RexGlue\TheOutFit\assets\game_files
 
 Result: the previous `--game_data_root was not provided` blocker is fixed. Runtime setup proceeds through game directory mount, XEX image load, and module launch, then fails on invalid/unregistered guest function `0x827D3DA8`.
 
+After adding `[functions."827D3DA8"] size = 0x18` to `config/manual_functions.toml`, regenerating, and rebuilding RelWithDebInfo, the invalid/unregistered function fatal is fixed. Runtime remains alive until killed by the test harness. The next observed warnings are VFS misses for several title paths, including `D:\COMMON\ENGINE\DATA`, `D:\XENON\ENGINE\DATA`, `D:\COMMON\ENGINE\MOVIES`, `D:\LocaleData:\`, and `D:\common\ww2\locale\English\IconMappings.map`.
+
 ## Local SDK Notes
 
 - The first configure attempt failed outside the Visual Studio developer environment because `oldnames.lib` and `msvcrtd.lib` were not visible to the linker.

@@ -8,3 +8,7 @@ name = "thunk_821E7A68_vtbl_10"
 [functions."8226D6A0"]
 end = 0x8226D9F8
 name = "sub_8226D6A0_manual"
+
+[functions."827D3DA8"]
+size = 0x18
+name = "sub_827D3DA8_manual"
