@@ -7,6 +7,8 @@ cmake-build-*/
 TheOutFit_Port/generated/default/
 TheOutFit_Port/x64/
 TheOutFit_Port/TheOutFit_Debug/
+TheOutFit_Port/.vs/
+TheOutFit_Port/*.vcxproj.user
 
 # Local environment
 .venv/

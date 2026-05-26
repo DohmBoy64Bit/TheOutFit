@@ -123,6 +123,21 @@ cd /d D:\360RexGlue\TheOutFit\TheOutFit_Port
 
 Result: `TheOutFit_Debug.sln` builds successfully through a Visual Studio Makefile project. The project delegates build/rebuild/clean to the verified `win-amd64-relwithdebinfo` Ninja/Clang preset and debugs `out\build\win-amd64-relwithdebinfo\theoutfit.exe`.
 
+The Visual Studio debug wrapper passes:
+
+```cmd
+--game_data_root=D:\360RexGlue\TheOutFit\assets\game_files
+```
+
+Direct runtime smoke command matching the VS launch argument:
+
+```cmd
+cd /d D:\360RexGlue\TheOutFit\TheOutFit_Port\out\build\win-amd64-relwithdebinfo
+theoutfit.exe --game_data_root=D:\360RexGlue\TheOutFit\assets\game_files
+```
+
+Result: the previous `--game_data_root was not provided` blocker is fixed. Runtime setup proceeds through game directory mount, XEX image load, and module launch, then fails on invalid/unregistered guest function `0x827D3DA8`.
+
 ## Local SDK Notes
 
 - The first configure attempt failed outside the Visual Studio developer environment because `oldnames.lib` and `msvcrtd.lib` were not visible to the linker.
