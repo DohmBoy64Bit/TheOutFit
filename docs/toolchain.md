@@ -140,6 +140,15 @@ Result: the previous `--game_data_root was not provided` blocker is fixed. Runti
 
 After adding `[functions."827D3DA8"] size = 0x18` to `config/manual_functions.toml`, regenerating, and rebuilding RelWithDebInfo, the invalid/unregistered function fatal is fixed. Runtime remains alive until killed by the test harness. The next observed warnings are VFS misses for several title paths, including `D:\COMMON\ENGINE\DATA`, `D:\XENON\ENGINE\DATA`, `D:\COMMON\ENGINE\MOVIES`, `D:\LocaleData:\`, and `D:\common\ww2\locale\English\IconMappings.map`.
 
+Verified first-frame trace invocation:
+
+```cmd
+cd /d D:\360RexGlue\TheOutFit\TheOutFit_Port\out\build\win-amd64-relwithdebinfo
+theoutfit.exe --game_data_root=D:\360RexGlue\TheOutFit\assets\game_files --log_level=trace --log_file=D:\360RexGlue\TheOutFit\docs\logs\runtime-first-frame-trace.log --gpu_debug_markers --dump_shaders=D:\360RexGlue\TheOutFit\docs\logs\shader-dumps-first-frame
+```
+
+Result: the process stayed alive until killed by the 120s smoke-test timeout. No first-frame, shader dump, swap, or present evidence was observed. A noisy follow-up showed `IconMappings.map` exists inside `Common\WW2\Locale\English\XModLoc.sga`; extracting that canonical payload locally to ignored `assets\game_files\Common\WW2\Locale\English\IconMappings.map` removed the direct loose-file open failure, but the runtime still did not reach first frame.
+
 ## Local SDK Notes
 
 - The first configure attempt failed outside the Visual Studio developer environment because `oldnames.lib` and `msvcrtd.lib` were not visible to the linker.
