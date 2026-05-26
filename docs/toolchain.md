@@ -114,6 +114,15 @@ cmake --build --preset win-amd64-release
 
 Result: release configure/build succeeded and linked `theoutfit.exe` under ignored `TheOutFit_Port\out\build\win-amd64-release`.
 
+Verified Visual Studio debug project:
+
+```cmd
+cd /d D:\360RexGlue\TheOutFit\TheOutFit_Port
+"C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Current\Bin\amd64\MSBuild.exe" TheOutFit_Debug.sln /p:Configuration=RelWithDebInfo /p:Platform=x64 /m
+```
+
+Result: `TheOutFit_Debug.sln` builds successfully through a Visual Studio Makefile project. The project delegates build/rebuild/clean to the verified `win-amd64-relwithdebinfo` Ninja/Clang preset and debugs `out\build\win-amd64-relwithdebinfo\theoutfit.exe`.
+
 ## Local SDK Notes
 
 - The first configure attempt failed outside the Visual Studio developer environment because `oldnames.lib` and `msvcrtd.lib` were not visible to the linker.
@@ -123,3 +132,4 @@ Result: release configure/build succeeded and linked `theoutfit.exe` under ignor
 - Add the ReXGlue install `bin` directory to command sessions when invoking `rexglue` directly, or call `rexglue.exe` by full path.
 - Keep `tools/` ignored; do not commit the third-party SDK checkout, build output, install tree, or local tool binaries.
 - Debug build currently fails at link time because debug objects use `_ITERATOR_DEBUG_LEVEL=2` while installed SDK libraries such as `spdlog.lib` were built with `_ITERATOR_DEBUG_LEVEL=0`; use the verified release preset unless a debug SDK build is prepared.
+- Do not use a normal CMake Visual Studio/MSVC generated project for ReXGlue output. The generated C++ uses Clang/GNU builtins and attributes, so the tracked Visual Studio solution is a Makefile project that invokes the known-good Clang/Ninja build instead.

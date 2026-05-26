@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="17.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="RelWithDebInfo|x64">
+      <Configuration>RelWithDebInfo</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <VCProjectVersion>17.0</VCProjectVersion>
+    <ProjectGuid>{E886E89B-FB66-4EA5-B59A-C25C38D1944E}</ProjectGuid>
+    <Keyword>MakeFileProj</Keyword>
+    <RootNamespace>TheOutFitDebug</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'" Label="Configuration">
+    <ConfigurationType>Makefile</ConfigurationType>
+    <PlatformToolset>v143</PlatformToolset>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">
+    <NMakeBuildCommandLine>cmd /d /c "call &quot;C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat&quot; &amp;&amp; set PATH=C:\Program Files\LLVM\bin;%PATH% &amp;&amp; cmake --preset win-amd64-relwithdebinfo &amp;&amp; cmake --build --preset win-amd64-relwithdebinfo"</NMakeBuildCommandLine>
+    <NMakeReBuildCommandLine>cmd /d /c "call &quot;C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat&quot; &amp;&amp; set PATH=C:\Program Files\LLVM\bin;%PATH% &amp;&amp; cmake --preset win-amd64-relwithdebinfo &amp;&amp; cmake --build --preset win-amd64-relwithdebinfo --clean-first"</NMakeReBuildCommandLine>
+    <NMakeCleanCommandLine>cmd /d /c "call &quot;C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat&quot; &amp;&amp; set PATH=C:\Program Files\LLVM\bin;%PATH% &amp;&amp; cmake --build --preset win-amd64-relwithdebinfo --target clean"</NMakeCleanCommandLine>
+    <NMakeOutput>$(MSBuildProjectDirectory)\out\build\win-amd64-relwithdebinfo\theoutfit.exe</NMakeOutput>
+    <LocalDebuggerCommand>$(MSBuildProjectDirectory)\out\build\win-amd64-relwithdebinfo\theoutfit.exe</LocalDebuggerCommand>
+    <LocalDebuggerWorkingDirectory>$(MSBuildProjectDirectory)\out\build\win-amd64-relwithdebinfo</LocalDebuggerWorkingDirectory>
+    <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
+  </PropertyGroup>
+  <ItemGroup>
+    <None Include="CMakeLists.txt" />
+    <None Include="CMakePresets.json" />
+    <None Include="theoutfit_manifest.toml" />
+    <None Include="config\manual_functions.toml" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\main.cpp" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+</Project>
