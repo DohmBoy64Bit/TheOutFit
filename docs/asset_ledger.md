@@ -1,0 +1,10 @@
+# Asset Ledger
+
+| Artifact | Path | SHA-256 | Size | Status | Notes |
+|---|---|---|---:|---|---|
+| Canonical source ISO | `D:\360RexGlue\TheOutFit\theoutfit.iso` | `9112A8E01719FC52749D0A735CD0CF44CE11C9F575714F0467B4EE30F7F5353A` | 7,834,892,288 bytes | Confirmed | User confirmed this lawful ISO is the source artifact for the project. Do not commit it. |
+
+## Policy
+- Keep an untouched copy of the original source artifact.
+- Do not commit ISOs, XEX files, extracted proprietary assets, keys, or decrypted proprietary content.
+- Record derived executable paths and hashes here before using them for ReXGlue analysis or generation.

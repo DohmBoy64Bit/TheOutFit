@@ -1,0 +1,28 @@
+# Build output
+build/
+out/
+CMakeFiles/
+CMakeCache.txt
+cmake-build-*/
+
+# Local environment
+.venv/
+workspace_env/
+__pycache__/
+*.pyc
+
+# Proprietary game binaries/assets - never commit unless explicitly allowed and lawful
+assets/default.xex
+assets/game_files/
+theoutfit.iso
+*.xex
+*.iso
+*.dvd
+*.xbe
+*.wad
+*.bin
+Outfit, The*/
+
+# Local tool/cache output
+*.log
+*.tmp
