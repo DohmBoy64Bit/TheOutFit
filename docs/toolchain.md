@@ -64,6 +64,35 @@ cmake --preset win-amd64-debug
 
 Result: CMake found ReXGlue SDK `0.8.1.4-dev.ge8ce24f` at `D:\360RexGlue\TheOutFit\tools\rexglue-sdk\out\install\win-amd64\lib\cmake\rexglue` and generated build files under ignored `TheOutFit_Port\out\build\win-amd64-debug`.
 
+Verified first codegen reconnaissance command:
+
+```cmd
+cd /d D:\360RexGlue\TheOutFit\TheOutFit_Port
+..\tools\rexglue-sdk\out\install\win-amd64\bin\rexglue.exe --log-level debug --log-file ..\docs\logs\codegen-first-debug.log codegen .\theoutfit_manifest.toml
+```
+
+Result: ReXGlue reached analysis sealing, then failed with `UnresolvedCall (2)` for `0x821E7A68 from 0x8269F910` and `0x8226D6A0 from 0x82262790`. No `TheOutFit_Port\generated\default` directory was produced. Ghidra MCP disassembly corroborated the target addresses as executable code but did not corroborate the reported source branches.
+
+Verified stable `v0.8.0` A/B build:
+
+```cmd
+git clone --recursive --branch v0.8.0 https://github.com/rexglue/rexglue-sdk.git D:\360RexGlue\TheOutFit\tools\rexglue-sdk-v0.8.0
+cd /d D:\360RexGlue\TheOutFit\tools\rexglue-sdk-v0.8.0
+call "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat"
+set PATH=C:\Program Files\LLVM\bin;%PATH%
+cmake --preset win-amd64
+cmake --build --preset win-amd64-release --target install
+```
+
+The `v0.8.0` binary reports `0.8.0` from tag commit `2bdb97f`. Its codegen result was identical to the dev build:
+
+```cmd
+cd /d D:\360RexGlue\TheOutFit\TheOutFit_Port
+..\tools\rexglue-sdk-v0.8.0\out\install\win-amd64\bin\rexglue.exe --log-level debug --log-file ..\docs\logs\codegen-v0.8.0-debug.log codegen .\theoutfit_manifest.toml
+```
+
+Result: same `UnresolvedCall (2)` at `0x821E7A68 from 0x8269F910` and `0x8226D6A0 from 0x82262790`; no generated output. Therefore switching from `0.8.1.4-dev.ge8ce24f` to the stable `v0.8.0` tag does not resolve the first codegen blocker.
+
 ## Local SDK Notes
 
 - The first configure attempt failed outside the Visual Studio developer environment because `oldnames.lib` and `msvcrtd.lib` were not visible to the linker.
