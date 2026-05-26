@@ -24,5 +24,6 @@ theoutfit.iso
 Outfit, The*/
 
 # Local tool/cache output
+tools/
 *.log
 *.tmp
