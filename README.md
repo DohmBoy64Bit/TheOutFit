@@ -54,7 +54,7 @@ Both are ignored and must remain local.
 
 ## ISO And Game Asset Extraction
 
-You need your own legally owned copy of the Xbox 360 game. If you keep a local ISO beside the project, place it here:
+You need your own legally owned copy of the Xbox 360 game. If you keep a local ISO beside the project, You can find 'info' on the proper 'legally' obtained backup copy [here](https://vimm.net/vault/78710) and place it here:
 
 ```text
 <repo>\theoutfit.iso
