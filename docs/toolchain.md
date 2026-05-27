@@ -126,7 +126,7 @@ Result: `TheOutFit_Debug.sln` builds successfully through a Visual Studio Makefi
 The Visual Studio debug wrapper passes:
 
 ```cmd
---game_data_root=D:\360RexGlue\TheOutFit\assets\game_files --d3d12_submit_on_primary_buffer_end=false
+--game_data_root=D:\360RexGlue\TheOutFit\assets\game_files --d3d12_tiled_shared_memory=false --d3d12_submit_on_primary_buffer_end=false
 ```
 
 Direct runtime smoke command matching the VS launch argument:
@@ -184,9 +184,19 @@ Result: the rotated log set contained no fatal/error/critical/device-hung lines 
 cd /d D:\360RexGlue\TheOutFit\tools\rexglue-sdk
 git apply ..\..\docs\rexglue_patches\0001-use-manual-switch-tables-during-block-discovery.patch
 git apply ..\..\docs\rexglue_patches\0002-tolerate-modifier-only-physical-protection.patch
+git apply ..\..\docs\rexglue_patches\0003-defer-d3d12-primary-submission-with-pending-uav-work.patch
 ```
 
-- Patch `0001` makes manual switch-table labels participate in block discovery for the `0x8269AB34` bctr state switch. Patch `0002` treats modifier-only physical allocation protection such as `0x400` (`X_PAGE_WRITECOMBINE`) as read/write, removing the final `MmAllocatePhysicalMemoryEx: bad protection bits` errors seen before first frame.
+- Patch `0001` makes manual switch-table labels participate in block discovery for the `0x8269AB34` bctr state switch. Patch `0002` treats modifier-only physical allocation protection such as `0x400` (`X_PAGE_WRITECOMBINE`) as read/write, removing the final `MmAllocatePhysicalMemoryEx: bad protection bits` errors seen before first frame. Patch `0003` adds a conservative D3D12 primary-buffer submission guard for pending UAV/EDRAM work; it is tracked as a partial diagnostic/runtime guard and is not independently sufficient to fix the current TDR.
+
+Current best D3D12 runtime smoke invocation after the `0x827558F0` thunk-seed pass:
+
+```cmd
+cd /d D:\360RexGlue\TheOutFit\TheOutFit_Port\out\build\win-amd64-relwithdebinfo
+theoutfit.exe --game_data_root=D:\360RexGlue\TheOutFit\assets\game_files --log_level=trace --log_noisy --log_flush_interval=1 --d3d12_tiled_shared_memory=false --d3d12_submit_on_primary_buffer_end=false --log_file=D:\360RexGlue\TheOutFit\docs\logs\runtime-after-seed-827558F0-tiled-false-submit-false.log
+```
+
+Result: a 120s passive smoke stayed alive until the harness killed it and showed no matched fatal/error/critical/device-hung lines. This is stronger than the earlier primary-submit-only mitigation, but still needs longer interactive gameplay validation.
 
 ## Open Items
 - Add the ReXGlue install `bin` directory to command sessions when invoking `rexglue` directly, or call `rexglue.exe` by full path.

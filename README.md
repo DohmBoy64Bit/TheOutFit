@@ -76,6 +76,7 @@ Apply the tracked local SDK patches from the SDK checkout root:
 cd /d D:\360RexGlue\TheOutFit\tools\rexglue-sdk
 git apply ..\..\docs\rexglue_patches\0001-use-manual-switch-tables-during-block-discovery.patch
 git apply ..\..\docs\rexglue_patches\0002-tolerate-modifier-only-physical-protection.patch
+git apply ..\..\docs\rexglue_patches\0003-defer-d3d12-primary-submission-with-pending-uav-work.patch
 ```
 
 Build and install ReXGlue:
@@ -88,10 +89,11 @@ cmake --preset win-amd64
 cmake --build --preset win-amd64-relwithdebinfo --target install
 ```
 
-The current local workflow requires the two tracked patches:
+The current local workflow requires the tracked patches below:
 
 - `0001-use-manual-switch-tables-during-block-discovery.patch`: makes manual `[[switch_tables]]` labels participate in block discovery.
 - `0002-tolerate-modifier-only-physical-protection.patch`: treats modifier-only physical allocation protection such as `0x400` / `X_PAGE_WRITECOMBINE` as read/write physical memory.
+- `0003-defer-d3d12-primary-submission-with-pending-uav-work.patch`: adds a conservative D3D12 primary-buffer submission guard when pending UAV/EDRAM work is visible. This patch is not independently proven to fix the TDR; it is tracked because it provides the current diagnostic guard used by local SDK builds.
 
 ## Game Data Setup
 
@@ -167,7 +169,9 @@ Latest runtime stability note:
 
 - A later unlimited visible run reached menu/audio/gameplay flow, then hit `D3D12 device removed: HRESULT 0x887A0006 - DEVICE_HUNG`.
 - `--direct_host_resolve=false` did not prevent the TDR.
-- `--d3d12_submit_on_primary_buffer_end=false` produced a playable run with no logged fatal/error/critical/device-hung lines before window shutdown, so it is the current candidate mitigation to keep testing.
+- `--d3d12_submit_on_primary_buffer_end=false` alone did not survive later passive smoke testing.
+- `--d3d12_tiled_shared_memory=false` avoided the device-hung path far enough to expose missing guest thunk `0x827558F0`.
+- After seeding `0x827558F0`, `0x82755908`, and `0x82755920`, the best current local runtime path is `--d3d12_tiled_shared_memory=false --d3d12_submit_on_primary_buffer_end=false`; a 120s passive smoke run stayed alive until the harness killed it and showed no matched fatal/error/critical/device-hung lines.
 
 Logs remain ignored.
 
@@ -182,7 +186,7 @@ TheOutFit_Port\out\build\win-amd64-relwithdebinfo\theoutfit.exe
 The debug wrapper passes:
 
 ```cmd
---game_data_root=D:\360RexGlue\TheOutFit\assets\game_files --d3d12_submit_on_primary_buffer_end=false
+--game_data_root=D:\360RexGlue\TheOutFit\assets\game_files --d3d12_tiled_shared_memory=false --d3d12_submit_on_primary_buffer_end=false
 ```
 
 Do not replace this with a normal MSVC-generated project unless the generated ReXGlue C++ and SDK are verified to build under that path.
@@ -219,6 +223,9 @@ Current `manual_functions.toml` includes coverage for:
 - `0x821ED038`
 - `0x826715B8`
 - `0x826715C8`
+- `0x827558F0`
+- `0x82755908`
+- `0x82755920`
 - `0x8269A9B0..0x8269BEE0`
 - switch table at `0x8269AB34`
 

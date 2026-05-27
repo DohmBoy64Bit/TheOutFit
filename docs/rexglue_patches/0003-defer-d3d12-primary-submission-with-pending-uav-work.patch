@@ -1,0 +1,103 @@
+diff --git a/include/rex/graphics/d3d12/render_target_cache.h b/include/rex/graphics/d3d12/render_target_cache.h
+index b9d2688..b8a43ec 100644
+--- a/include/rex/graphics/d3d12/render_target_cache.h
++++ b/include/rex/graphics/d3d12/render_target_cache.h
+@@ -112,6 +112,7 @@ class D3D12RenderTargetCache final : public RenderTargetCache {
+   static DXGI_FORMAT GetDepthDSVDXGIFormat(xenos::DepthRenderTargetFormat format);
+   static DXGI_FORMAT GetDepthSRVDepthDXGIFormat(xenos::DepthRenderTargetFormat format);
+   static DXGI_FORMAT GetDepthSRVStencilDXGIFormat(xenos::DepthRenderTargetFormat format);
++  bool HasUncommittedEdramUAVWrites() const;
+ 
+  protected:
+   uint32_t GetMaxRenderTargetWidth() const override { return D3D12_REQ_TEXTURE2D_U_OR_V_DIMENSION; }
+diff --git a/include/rex/graphics/d3d12/shared_memory.h b/include/rex/graphics/d3d12/shared_memory.h
+index 40507d8..0a1bb3f 100644
+--- a/include/rex/graphics/d3d12/shared_memory.h
++++ b/include/rex/graphics/d3d12/shared_memory.h
+@@ -67,6 +67,7 @@ class D3D12SharedMemory : public SharedMemory {
+       buffer_uav_writes_commit_needed_ = true;
+     }
+   }
++  bool HasUncommittedUAVWrites() const { return buffer_uav_writes_commit_needed_; }
+ 
+   void WriteRawSRVDescriptor(D3D12_CPU_DESCRIPTOR_HANDLE handle);
+   void WriteRawUAVDescriptor(D3D12_CPU_DESCRIPTOR_HANDLE handle);
+diff --git a/include/rex/graphics/d3d12/texture_cache.h b/include/rex/graphics/d3d12/texture_cache.h
+index 4d845c7..5da0605 100644
+--- a/include/rex/graphics/d3d12/texture_cache.h
++++ b/include/rex/graphics/d3d12/texture_cache.h
+@@ -152,6 +152,17 @@ class D3D12TextureCache final : public TextureCache {
+     assert_true(IsDrawResolutionScaled());
+     GetCurrentScaledResolveBuffer().SetUAVBarrierPending();
+   }
++  bool HasUncommittedScaledResolveUAVWrites() const {
++    if (!IsDrawResolutionScaled()) {
++      return false;
++    }
++    for (const auto& scaled_resolve_buffer : scaled_resolve_2gb_buffers_) {
++      if (scaled_resolve_buffer && scaled_resolve_buffer->HasUAVBarrierPending()) {
++        return true;
++      }
++    }
++    return false;
++  }
+ 
+   // Returns the ID3D12Resource of the front buffer texture (in
+   // NON_PIXEL_SHADER_RESOURCE state), or nullptr in case of failure, and writes
+@@ -342,6 +353,7 @@ class D3D12TextureCache final : public TextureCache {
+     }
+     // After an aliasing barrier (which is even stronger than an UAV barrier).
+     void ClearUAVBarrierPending() { uav_barrier_pending_ = false; }
++    bool HasUAVBarrierPending() const { return uav_barrier_pending_; }
+ 
+    private:
+     Microsoft::WRL::ComPtr<ID3D12Resource> resource_;
+diff --git a/src/graphics/d3d12/command_processor.cpp b/src/graphics/d3d12/command_processor.cpp
+index efed1b7..28bfe20 100644
+--- a/src/graphics/d3d12/command_processor.cpp
++++ b/src/graphics/d3d12/command_processor.cpp
+@@ -2284,6 +2284,8 @@ void D3D12CommandProcessor::OnPrimaryBufferEnd() {
+   if (REXCVAR_GET(d3d12_submit_on_primary_buffer_end) && submission_open_ &&
+       CanEndSubmissionImmediately()) {
+     EndSubmission(false);
++  } else if (REXCVAR_GET(d3d12_submit_on_primary_buffer_end) && submission_open_) {
++    REXGPU_TRACE("D3D12: deferring primary-buffer submission at submission {}", submission_current_);
+   }
+ }
+ 
+@@ -3557,7 +3559,19 @@ bool D3D12CommandProcessor::EndSubmission(bool is_swap) {
+ }
+ 
+ bool D3D12CommandProcessor::CanEndSubmissionImmediately() const {
+-  return !submission_open_ || !pipeline_cache_->IsCreatingPipelines();
++  if (!submission_open_ || frame_open_ || pipeline_cache_->IsCreatingPipelines()) {
++    return false;
++  }
++  if (shared_memory_ && shared_memory_->HasUncommittedUAVWrites()) {
++    return false;
++  }
++  if (texture_cache_ && texture_cache_->HasUncommittedScaledResolveUAVWrites()) {
++    return false;
++  }
++  if (render_target_cache_ && render_target_cache_->HasUncommittedEdramUAVWrites()) {
++    return false;
++  }
++  return true;
+ }
+ 
+ void D3D12CommandProcessor::ClearCommandAllocatorCache() {
+diff --git a/src/graphics/d3d12/render_target_cache.cpp b/src/graphics/d3d12/render_target_cache.cpp
+index 8e269c4..dc7cc8d 100644
+--- a/src/graphics/d3d12/render_target_cache.cpp
++++ b/src/graphics/d3d12/render_target_cache.cpp
+@@ -1063,6 +1063,10 @@ void D3D12RenderTargetCache::BeginSubmission() {
+   }
+ }
+ 
++bool D3D12RenderTargetCache::HasUncommittedEdramUAVWrites() const {
++  return edram_buffer_modification_status_ != EdramBufferModificationStatus::kUnmodified;
++}
++
+ bool D3D12RenderTargetCache::Update(bool is_rasterization_done,
+                                     reg::RB_DEPTHCONTROL normalized_depth_control,
+                                     uint32_t normalized_color_mask, const Shader& vertex_shader) {
