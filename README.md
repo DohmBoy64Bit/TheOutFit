@@ -145,6 +145,35 @@ cmake --build --preset win-amd64-relwithdebinfo --target install
 
 Optional diagnostic patches are documented in `docs/rexglue_patches/README.md`. They are not required by default.
 
+## Generate ReXGlue Code
+
+Before building the port, the extracted `default.xex` must exist here:
+
+```text
+D:\360RexGlue\TheOutFit\assets\game_files\default.xex
+```
+
+The manifest already points at that file:
+
+```text
+TheOutFit_Port\theoutfit_manifest.toml
+```
+
+Run codegen from the port directory:
+
+```cmd
+cd /d D:\360RexGlue\TheOutFit\TheOutFit_Port
+..\tools\rexglue-sdk\out\install\win-amd64\bin\rexglue.exe codegen .\theoutfit_manifest.toml
+```
+
+This creates reproducible generated code under:
+
+```text
+TheOutFit_Port\generated\default
+```
+
+That folder is ignored and should not be committed. Re-run codegen after changing the manifest, manual function config, switch-table config, or after replacing the extracted `default.xex`.
+
 ## Build The Port
 
 From the port directory:
