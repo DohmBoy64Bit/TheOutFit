@@ -237,12 +237,6 @@ For details, see:
 - `docs/asset_ledger.md`
 - `docs/rexglue_patches/README.md`
 
-## Research Rules
-
-This project uses ReXGlue as the active porting path. Xenia Canary is used only as a research reference for comparing behavior.
-
-For guest-code investigation, use Ghidra MCP first when available. Manual Ghidra lookup is fallback only.
-
 ## Credits
 
 - Original game: *The Outfit* by Relic Entertainment, published by THQ.
