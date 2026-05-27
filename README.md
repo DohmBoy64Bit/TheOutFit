@@ -38,44 +38,44 @@ Do not commit or upload:
 - generated ReXGlue output
 - logs, screenshots, binaries, or local build output
 
-The expected local game data path is:
+The expected local game data path inside your clone is:
 
 ```text
-D:\360RexGlue\TheOutFit\assets\game_files
+<repo>\assets\game_files
 ```
 
-The canonical local ISO path used during development is:
+If you keep a local ISO beside the project, use:
 
 ```text
-D:\360RexGlue\TheOutFit\theoutfit.iso
+<repo>\theoutfit.iso
 ```
 
 Both are ignored and must remain local.
 
 ## ISO And Game Asset Extraction
 
-You need your own legally owned copy of the Xbox 360 game. Place the local ISO at the canonical path used by this workspace:
+You need your own legally owned copy of the Xbox 360 game. If you keep a local ISO beside the project, place it here:
 
 ```text
-D:\360RexGlue\TheOutFit\theoutfit.iso
+<repo>\theoutfit.iso
 ```
 
 Extract the ISO into the ignored game data folder:
 
 ```text
-D:\360RexGlue\TheOutFit\assets\game_files
+<repo>\assets\game_files
 ```
 
 This workspace has used `extract-xiso` for the local extraction. The exact command can vary by tool build, but the important result is that the extracted entrypoint exists here:
 
 ```text
-D:\360RexGlue\TheOutFit\assets\game_files\default.xex
+<repo>\assets\game_files\default.xex
 ```
 
 Launch the port with that extracted folder as the game data root:
 
 ```cmd
---game_data_root=D:\360RexGlue\TheOutFit\assets\game_files
+--game_data_root=<repo>\assets\game_files
 ```
 
 Keep the ISO and extracted files out of Git. `docs/asset_ledger.md` records local hashes and evidence, but not game content.
@@ -91,8 +91,7 @@ Known local ISO evidence used during development:
 - Extracted entrypoint: `assets/game_files/default.xex`
 - `default.xex` SHA-256: `1BD7C232574681D51865C40383581F4157592991998BC6CE085E24CE38325654`
 
-The project does not host, link to, or endorse downloads of copyrighted game files. 
-You can find 'info' on the proper 'legally' obtained backup copy [here](https://vimm.net/vault/78710)
+The project does not host, link to, or endorse downloads of copyrighted game files.
 
 ## Project Layout
 
@@ -119,28 +118,28 @@ The verified Windows setup uses:
 
 The exact commands and environment notes live in `docs/toolchain.md`.
 
+In the commands below, replace `<repo>` with the folder where you cloned this repository.
+
 ## ReXGlue SDK Setup
 
 Clone ReXGlue into the ignored `tools/` folder:
 
 ```cmd
-cd /d D:\360RexGlue\TheOutFit
+cd /d <repo>
 git clone --recursive https://github.com/rexglue/rexglue-sdk.git tools\rexglue-sdk
 ```
 
 Apply the required local SDK patches from the ReXGlue checkout:
 
 ```cmd
-cd /d D:\360RexGlue\TheOutFit\tools\rexglue-sdk
+cd /d <repo>\tools\rexglue-sdk
 git apply ..\..\docs\rexglue_patches\0001-use-manual-switch-tables-during-block-discovery.patch
 git apply ..\..\docs\rexglue_patches\0002-tolerate-modifier-only-physical-protection.patch
 ```
 
-Build and install the SDK:
+Build and install the SDK from an x64 Visual Studio developer shell with LLVM/Clang available on `PATH`:
 
 ```cmd
-call "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat"
-set PATH=C:\Program Files\LLVM\bin;%PATH%
 cmake --preset win-amd64
 cmake --build --preset win-amd64-relwithdebinfo --target install
 ```
@@ -152,7 +151,7 @@ Optional diagnostic patches are documented in `docs/rexglue_patches/README.md`. 
 Before building the port, the extracted `default.xex` must exist here:
 
 ```text
-D:\360RexGlue\TheOutFit\assets\game_files\default.xex
+<repo>\assets\game_files\default.xex
 ```
 
 The manifest already points at that file:
@@ -164,7 +163,7 @@ TheOutFit_Port\theoutfit_manifest.toml
 Run codegen from the port directory:
 
 ```cmd
-cd /d D:\360RexGlue\TheOutFit\TheOutFit_Port
+cd /d <repo>\TheOutFit_Port
 ..\tools\rexglue-sdk\out\install\win-amd64\bin\rexglue.exe codegen .\theoutfit_manifest.toml
 ```
 
@@ -178,12 +177,10 @@ That folder is ignored and should not be committed. Re-run codegen after changin
 
 ## Build The Port
 
-From the port directory:
+From the port directory, using an x64 Visual Studio developer shell with LLVM/Clang available on `PATH`:
 
 ```cmd
-call "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat"
-set PATH=C:\Program Files\LLVM\bin;%PATH%
-cd /d D:\360RexGlue\TheOutFit\TheOutFit_Port
+cd /d <repo>\TheOutFit_Port
 cmake --preset win-amd64-relwithdebinfo
 cmake --build --preset win-amd64-relwithdebinfo
 ```
@@ -199,7 +196,7 @@ Build output is ignored.
 ## Run A Smoke Test
 
 ```cmd
-cd /d D:\360RexGlue\TheOutFit\TheOutFit_Port\out\build\win-amd64-relwithdebinfo
+cd /d <repo>\TheOutFit_Port\out\build\win-amd64-relwithdebinfo
 theoutfit.exe
 ```
 
@@ -208,7 +205,7 @@ The executable auto-detects extracted game files in `game_files` beside the exec
 For debugging, use trace logging:
 
 ```cmd
-theoutfit.exe --log_level=trace --log_noisy --log_flush_interval=1 --log_file=D:\360RexGlue\TheOutFit\docs\logs\runtime-smoke.log
+theoutfit.exe --log_level=trace --log_noisy --log_flush_interval=1 --log_file=<repo>\docs\logs\runtime-smoke.log
 ```
 
 Logs are ignored and should not be uploaded.
