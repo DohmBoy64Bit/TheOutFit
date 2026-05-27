@@ -242,16 +242,12 @@ This project uses ReXGlue as the active porting path. Xenia Canary is used only 
 
 For guest-code investigation, use Ghidra MCP first when available. Manual Ghidra lookup is fallback only.
 
-## Contributing Notes
+## Credits
 
-Keep commits focused and evidence-based. A crash moving somewhere else is not automatically a fix.
+- Original game: *The Outfit* by Relic Entertainment, published by THQ.
+- Recompilation/runtime framework: [ReXGlue](https://github.com/rexglue/rexglue-sdk).
+- Static analysis bridge: [bethington/ghidra-mcp](https://github.com/bethington/ghidra-mcp).
+- Comparative emulator research: [Xenia Canary](https://github.com/xenia-canary/xenia-canary).
+- Community recomp references used for layout and documentation research only: TiP-Recomp, reNut, redahm, Re-Cherry, and NaughtyBear_ReStuff.
 
-Good commit candidates:
-
-- source files
-- config files
-- docs
-- helper scripts
-- tracked SDK patch files
-
-Never commit local game content, generated output, raw logs, build products, or private agent instructions.
+This repository does not include or distribute game content.
