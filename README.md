@@ -1,76 +1,90 @@
-# TheOutFit ReXGlue Port
+![The Outfit ReXGlue Port](imgs/readme_banner.png)
 
-This repository tracks the source, configuration, documentation, and reproducible notes for a ReXGlue-based Xbox 360 recompilation/runtime bring-up of *The Outfit*.
+# The Outfit ReXGlue Port
 
-The project is currently ReXGlue-only. It does not use XenonRecomp or XenonAnalyse as workflow stages.
+This repository tracks an experimental native PC bring-up of the Xbox 360 version of *The Outfit* using [ReXGlue](https://github.com/rexglue/rexglue-sdk).
+
+The goal is to make the game run as a native Windows application instead of through a full emulator. This is active reverse-engineering and runtime bring-up work, so the project is not ready for normal play yet.
 
 ## Current Status
 
-- ReXGlue SDK version used locally: `0.8.1.4-dev.ge8ce24f`.
-- Canonical local source artifact: `D:\360RexGlue\TheOutFit\theoutfit.iso`.
-- Canonical extracted game root: `D:\360RexGlue\TheOutFit\assets\game_files`.
-- Current runtime milestone: first rendered frame, menus, audio, and gameplay entry reached in RelWithDebInfo.
-- Current active blocker: later D3D12 `DEVICE_HUNG` / TDR can occur during gameplay; current evidence points at repeated D3D12 resolve/coherency traffic and shared-memory UAV work, not a missing guest function.
-- Generated ReXGlue output is reproducible and ignored at `TheOutFit_Port/generated/default`.
-- Local ReXGlue SDK checkout/build output is ignored under `tools/`.
+The port currently reaches the first rendered frame, menus, audio, and gameplay entry.
 
-See `docs/regression_log.md` for the exact evidence chain.
+The main blocker is a later Direct3D 12 GPU hang during gameplay. The crash is not currently believed to be a missing game function; the evidence points toward ReXGlue's D3D12 render-target/resolve path.
 
-## Repository Contents
+Recent comparison with Xenia Canary is useful: current Canary D3D12 and Vulkan builds survive the same gameplay area that older Xenia and this port can crash in. That makes Canary a helpful research reference, but this project remains ReXGlue-only.
+
+## What Is Included
+
+- ReXGlue project files for *The Outfit*
+- Manual function and switch-table configuration needed for the current build
+- Focused local ReXGlue SDK patches stored as patch files
+- Porting notes, address evidence, asset notes, and regression history
+- Helper scripts for read-only PowerPC/XEX investigation
+- A Visual Studio debug wrapper that launches the verified CMake build
+
+## What Is Not Included
+
+This repository does not include the game.
+
+Do not commit or upload:
+
+- ISO files
+- XEX files
+- extracted game assets
+- copyrighted game data
+- generated ReXGlue output
+- logs, screenshots, binaries, or local build output
+
+The expected local game data path is:
+
+```text
+D:\360RexGlue\TheOutFit\assets\game_files
+```
+
+The canonical local ISO path used during development is:
+
+```text
+D:\360RexGlue\TheOutFit\theoutfit.iso
+```
+
+Both are ignored and must remain local.
+
+## Project Layout
 
 | Path | Purpose |
 |---|---|
-| `TheOutFit_Port/` | ReXGlue project manifest, CMake project, app customization, and Visual Studio debug wrapper. |
-| `TheOutFit_Port/config/manual_functions.toml` | Manual function seeds and switch-table config needed for current codegen/runtime progress. |
-| `TheOutFit_Port/src/theoutfit_app.h` | Project-side lifecycle and register-only watchdog diagnostics. |
-| `docs/` | Porting ledgers, verified toolchain commands, regression history, and local SDK patches. |
-| `docs/rexglue_patches/` | Tracked patch files for the ignored local ReXGlue SDK checkout. |
-| `scripts/xref_ppc_in_xex.py` | Read-only helper for PPC/XEX xref and heuristic scans. |
-| `scripts/translate_switch_tables.py` | Reference-only helper; not source of truth for ReXGlue behavior. |
-| `AGENTS.md` | Required instructions for future AI agent work in this repository. |
-| `SystemPrompt.md` | Project-specific system prompt/handoff guidance. |
+| `TheOutFit_Port/` | Main ReXGlue port project, manifest, config, source, and Visual Studio wrapper. |
+| `TheOutFit_Port/config/manual_functions.toml` | Current manual function seeds and switch-table entries. |
+| `docs/` | Human-readable notes, ledgers, build history, and regression evidence. |
+| `docs/rexglue_patches/` | Local ReXGlue SDK patches used or investigated by this port. |
+| `scripts/` | Read-only helper scripts for research and verification. |
+| `imgs/` | Public README images. |
 
-## Asset Policy
-
-This repository must not contain copyrighted game binaries, decrypted assets, keys, generated proprietary screenshots, logs with proprietary payloads, or the source ISO.
-
-Ignored local inputs include:
-
-- `theoutfit.iso`
-- `assets/game_files/`
-- `*.xex`, `*.iso`, `*.dvd`, `*.xbe`, `*.wad`
-- `TheOutFit_Port/generated/default/`
-- `TheOutFit_Port/out/`
-- `docs/logs/`
-- `tools/`
-
-Document local assets in `docs/asset_ledger.md` before using them as evidence. Do not commit the assets themselves.
-
-## Required Local Setup
+## Build Requirements
 
 The verified Windows setup uses:
 
-- Git
+- Visual Studio 2022 Community or Build Tools
+- LLVM / Clang
 - CMake
 - Ninja
 - Python
-- Visual Studio 2022 Community / Build Tools
-- LLVM with `clang-cl.exe`
-- ReXGlue SDK checkout at `tools/rexglue-sdk`
-- Ghidra MCP via `bethington/ghidra-mcp` for guest-address research
+- Git
+- ReXGlue SDK checked out locally under `tools/rexglue-sdk`
 
-See `docs/toolchain.md` for exact verified versions and command output.
+The exact commands and environment notes live in `docs/toolchain.md`.
 
 ## ReXGlue SDK Setup
 
-Clone/build the ReXGlue SDK locally under ignored `tools/`:
+Clone ReXGlue into the ignored `tools/` folder:
 
 ```cmd
 cd /d D:\360RexGlue\TheOutFit
 git clone --recursive https://github.com/rexglue/rexglue-sdk.git tools\rexglue-sdk
 ```
 
-Apply the tracked local SDK patches from the SDK checkout root:
+Apply the required local SDK patches from the ReXGlue checkout:
 
 ```cmd
 cd /d D:\360RexGlue\TheOutFit\tools\rexglue-sdk
@@ -78,87 +92,20 @@ git apply ..\..\docs\rexglue_patches\0001-use-manual-switch-tables-during-block-
 git apply ..\..\docs\rexglue_patches\0002-tolerate-modifier-only-physical-protection.patch
 ```
 
-For D3D12 TDR investigation, optional diagnostic/experimental patches are also tracked:
-
-```cmd
-git apply ..\..\docs\rexglue_patches\0003-defer-d3d12-primary-submission-with-pending-uav-work.patch
-git apply ..\..\docs\rexglue_patches\0004-diagnose-d3d12-shared-memory-coherency.patch
-git apply ..\..\docs\rexglue_patches\0005-diagnose-d3d12-resolve-coherency-loop.patch
-git apply ..\..\docs\rexglue_patches\0006-diagnose-d3d12-host-render-target-extent-and-resolve.patch
-```
-
-Build and install ReXGlue:
+Build and install the SDK:
 
 ```cmd
 call "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat"
 set PATH=C:\Program Files\LLVM\bin;%PATH%
-cd /d D:\360RexGlue\TheOutFit\tools\rexglue-sdk
 cmake --preset win-amd64
 cmake --build --preset win-amd64-relwithdebinfo --target install
 ```
 
-The current minimal required local workflow uses:
+Optional diagnostic patches are documented in `docs/rexglue_patches/README.md`. They are not required by default.
 
-- `0001-use-manual-switch-tables-during-block-discovery.patch`: makes manual `[[switch_tables]]` labels participate in block discovery.
-- `0002-tolerate-modifier-only-physical-protection.patch`: treats modifier-only physical allocation protection such as `0x400` / `X_PAGE_WRITECOMBINE` as read/write physical memory.
-- `0003-defer-d3d12-primary-submission-with-pending-uav-work.patch`: optional diagnostic/experimental primary-buffer submission guard. It is not currently proven required and did not independently fix the TDR.
-- `0004-diagnose-d3d12-shared-memory-coherency.patch`: optional diagnostics for D3D12 shared-memory mode, tile mapping, upload ranges, state transitions, and UAV barriers. This is not a fix.
-- `0005-diagnose-d3d12-resolve-coherency-loop.patch`: optional diagnostics for render-target resolve source/destination format, destination ranges, dispatch counts, and repeated resolve/coherency batches. It also includes an experimental split after four copied resolve dispatches with pending UAV/coherency work; latest evidence still reproduced `DEVICE_HUNG`, so this is not a fix.
-- `0006-diagnose-d3d12-host-render-target-extent-and-resolve.patch`: optional diagnostics for host-render-target resolve extent, repeat count, direct-resolve preflight, and dump rectangle behavior. This is not a fix.
+## Build The Port
 
-## Xenia Canary Comparison
-
-Recent research-only comparison shows the older non-Canary Xenia D3D12 run failed with a graphics device loss in the same broad class as the ReXGlue TDR, while the current Canary build `canary_experimental@29311ddcd` can survive the same gameplay area with Vulkan, strict D3D12, and `gpu = "any"` on the local AMD RX 7800 XT setup.
-
-Important local Canary config evidence:
-
-- `gpu = "any"` selected the D3D12 path in the captured log.
-- `d3d12_submit_on_primary_buffer_end = true`, so Canary stability does not by itself support permanently disabling primary-buffer-end submission.
-- `readback_resolve = "none"`, `d3d12_bindless = true`, `gpu_allow_invalid_fetch_constants = true`, and CPU-side unclipped draw extent estimation are active research leads.
-- Canary logs still show invalid upload range warnings and missing VFS probes, so those are not automatically fatal for this title.
-- Canary-mirrored ReXGlue cvar tests did not fix the TDR in local validation: invalid fetch constants, CPU-side unclipped draw extent estimation, ROV render-target path, and explicit RTV all eventually reproduced `DEVICE_HUNG`.
-
-Use Xenia Canary only as a research reference for backend behavior. Do not copy emulator code or treat Xenia settings as ReXGlue truth without verifying equivalent ReXGlue cvars/source locally.
-
-## Game Data Setup
-
-The project expects extracted game files at:
-
-```text
-D:\360RexGlue\TheOutFit\assets\game_files
-```
-
-The ReXGlue manifest expects `default.xex` in that tree. The local source ISO and extracted game files are ignored and must remain local.
-
-Current documented local inputs:
-
-- `theoutfit.iso`
-- `assets/game_files/default.xex`
-- `assets/game_files/Common/WW2/Locale/English/IconMappings.map`
-- `assets/game_files/ingame_ui.XZP`
-
-See `docs/asset_ledger.md` for hashes and status.
-
-## Code Generation
-
-Run codegen from the ReXGlue project directory:
-
-```cmd
-cd /d D:\360RexGlue\TheOutFit\TheOutFit_Port
-..\tools\rexglue-sdk\out\install\win-amd64\bin\rexglue.exe --log-level debug --log-file ..\docs\logs\codegen-manual-functions-debug.log codegen .\theoutfit_manifest.toml
-```
-
-Generated output goes to:
-
-```text
-TheOutFit_Port\generated\default
-```
-
-That directory is intentionally ignored.
-
-## Build
-
-Use the verified RelWithDebInfo preset:
+From the port directory:
 
 ```cmd
 call "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat"
@@ -168,121 +115,72 @@ cmake --preset win-amd64-relwithdebinfo
 cmake --build --preset win-amd64-relwithdebinfo
 ```
 
-The executable is produced under ignored build output:
+The executable is generated at:
 
 ```text
 TheOutFit_Port\out\build\win-amd64-relwithdebinfo\theoutfit.exe
 ```
 
-## Runtime Smoke Test
+Build output is ignored.
 
-Verified first-frame smoke command:
+## Run A Smoke Test
 
 ```cmd
 cd /d D:\360RexGlue\TheOutFit\TheOutFit_Port\out\build\win-amd64-relwithdebinfo
-theoutfit.exe --game_data_root=D:\360RexGlue\TheOutFit\assets\game_files --log_level=trace --log_noisy --log_flush_interval=1 --log_file=D:\360RexGlue\TheOutFit\docs\logs\runtime-first-frame-no-errors.log
+theoutfit.exe --game_data_root=D:\360RexGlue\TheOutFit\assets\game_files
 ```
 
-Final verified result:
+For debugging, use trace logging:
 
-- Process stayed alive until killed by the smoke-test harness.
-- Visible first rendered frame was captured locally, then removed from the worktree.
-- `runtime-first-frame-no-errors.log` had no fatal/error/critical lines.
-- Repeated GPU `Resolve` progress was present.
+```cmd
+theoutfit.exe --game_data_root=D:\360RexGlue\TheOutFit\assets\game_files --log_level=trace --log_noisy --log_flush_interval=1 --log_file=D:\360RexGlue\TheOutFit\docs\logs\runtime-smoke.log
+```
 
-Latest runtime stability note:
-
-- A later unlimited visible run reached menu/audio/gameplay flow, then hit `D3D12 device removed: HRESULT 0x887A0006 - DEVICE_HUNG`.
-- `--direct_host_resolve=false` did not prevent the TDR.
-- `--d3d12_submit_on_primary_buffer_end=false` alone did not survive later passive smoke testing.
-- `--d3d12_tiled_shared_memory=false` avoided the device-hung path far enough to expose missing guest thunk `0x827558F0`, but later longer/diagnostic runs still reproduced `DEVICE_HUNG`.
-- `--d3d12_tiled_shared_memory=false --d3d12_submit_on_primary_buffer_end=false` is no longer considered stable; it reproduced `DEVICE_HUNG` in a later comparison run.
-- Patch `0005` confirmed the simple submission-boundary hypothesis is insufficient: the experimental resolve/coherency split fired 107 times with no split failures, but the default run still reproduced `DXGI_ERROR_DEVICE_HUNG`.
-- The current active diagnosis is a D3D12 resolve/coherency path issue around shared-memory UAV barriers and repeated destination ranges, not a guest missing-function issue.
-
-Logs remain ignored.
+Logs are ignored and should not be uploaded.
 
 ## Visual Studio Debugging
 
-`TheOutFit_Port/TheOutFit_Debug.sln` is a tracked Visual Studio Makefile wrapper. It delegates build/rebuild/clean to the verified CMake/Ninja/Clang RelWithDebInfo path and debugs:
+Open:
 
 ```text
-TheOutFit_Port\out\build\win-amd64-relwithdebinfo\theoutfit.exe
+TheOutFit_Port\TheOutFit_Debug.sln
 ```
 
-The debug wrapper passes:
+This solution is a small wrapper around the verified CMake/Ninja/Clang build. It launches the RelWithDebInfo executable with the expected `--game_data_root` argument.
 
-```cmd
---game_data_root=D:\360RexGlue\TheOutFit\assets\game_files
-```
+## Current Technical Notes
 
-Do not replace this with a normal MSVC-generated project unless the generated ReXGlue C++ and SDK are verified to build under that path.
+- ReXGlue version used locally: `0.8.1.4-dev.ge8ce24f`.
+- Required local SDK patches: `0001` and `0002`.
+- Diagnostic SDK patches `0003` through `0006` are tracked but not required by default.
+- Generated ReXGlue code is reproducible and ignored at `TheOutFit_Port/generated/default`.
+- Latest active investigation: D3D12 host-render-target/direct-resolve/dump behavior after repeated resolve/coherency traffic.
+- Canary-mirrored ReXGlue cvar tests did not fix the TDR.
 
-## Documentation Discipline
+For details, see:
 
-Keep these files updated as part of every meaningful porting change:
+- `docs/regression_log.md`
+- `docs/toolchain.md`
+- `docs/address_ledger.md`
+- `docs/asset_ledger.md`
+- `docs/rexglue_patches/README.md`
 
-- `README.md`: current project status, setup, build/run workflow, and maintenance rules.
-- `docs/toolchain.md`: verified commands, tools, SDK setup, and local SDK patch requirements.
-- `docs/regression_log.md`: every hook, runtime stub, config edit, generated-project patch, build milestone, and crash movement.
-- `docs/address_ledger.md`: concrete guest addresses confirmed from ReXGlue logs, debugger evidence, generated frame names, helper scripts, or Ghidra MCP.
-- `docs/asset_ledger.md`: local asset paths, hashes, and proprietary-boundary notes.
-- `AGENTS.md`: active instructions for future agents.
+## Research Rules
 
-Do not call a change correct merely because a crash moved or disappeared. Record the evidence and classification.
+This project uses ReXGlue as the active porting path. Xenia Canary is used only as a research reference for comparing behavior.
 
-## Guest Analysis Rules
+For guest-code investigation, use Ghidra MCP first when available. Manual Ghidra lookup is fallback only.
 
-- Use `bethington/ghidra-mcp` first for function, disassembly, decompiler, xref, and data-reference evidence.
-- Use manual Ghidra lookup only as fallback.
-- Use `scripts/xref_ppc_in_xex.py` as a read-only helper when useful.
-- Treat `scripts/translate_switch_tables.py` as reference-only.
-- Label whether evidence came from local files, ReXGlue output, Ghidra MCP, helper scripts, or user-provided artifacts.
+## Contributing Notes
 
-## Current Tracked ReXGlue Manual Coverage
+Keep commits focused and evidence-based. A crash moving somewhere else is not automatically a fix.
 
-Current `manual_functions.toml` includes coverage for:
+Good commit candidates:
 
-- `0x821E7A68`
-- `0x8226D6A0`
-- `0x827D3DA8`
-- `0x8248C3E0`
-- `0x821ED038`
-- `0x826715B8`
-- `0x826715C8`
-- `0x827558F0`
-- `0x82755908`
-- `0x82755920`
-- `0x8269A9B0..0x8269BEE0`
-- switch table at `0x8269AB34`
-
-See `docs/address_ledger.md` for evidence and notes.
-
-## Commit Hygiene
-
-Commit candidates:
-
-- source
-- configs
+- source files
+- config files
 - docs
-- scripts
-- reproducible metadata
-- tracked patch files
+- helper scripts
+- tracked SDK patch files
 
-Never commit:
-
-- ISO files
-- XEX files
-- extracted game assets
-- generated ReXGlue output
-- build output
-- `.pdb`, `.exe`, `.dll`
-- Visual Studio local state
-- raw logs
-- screenshots of proprietary rendered content
-
-## Open Items
-
-- Keep first-frame runtime status reproducible after SDK or ReXGlue updates.
-- Decide later whether generated ReXGlue output should remain ignored or become part of a reproducible release workflow.
-- Upstream or otherwise formalize durable local ReXGlue SDK patches if they remain generally useful; keep diagnostic-only patches clearly labeled until proven as fixes.
+Never commit local game content, generated output, raw logs, build products, or private agent instructions.
