@@ -89,7 +89,8 @@ Known local ISO evidence used during development:
 - Extracted entrypoint: `assets/game_files/default.xex`
 - `default.xex` SHA-256: `1BD7C232574681D51865C40383581F4157592991998BC6CE085E24CE38325654`
 
-The project does not host, link to, or endorse downloads of copyrighted game files.
+The project does not host, link to, or endorse downloads of copyrighted game files. 
+You can find 'info' on the proper 'legally' obtained backup copy [Here](https://vimm.net/vault/78710)
 
 ## Project Layout
 
