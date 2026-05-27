@@ -178,21 +178,23 @@ Result: the rotated log set initially contained no fatal/error/critical/device-h
 
 - The first configure attempt failed outside the Visual Studio developer environment because `oldnames.lib` and `msvcrtd.lib` were not visible to the linker.
 - The Windows checkout materialized `libmspack` symlink placeholders as text files because `core.symlinks=false`; local ignored SDK files under `thirdparty/libmspack/cabextract/mspack` were copied from their referenced targets before the install build succeeded.
-- The current first-frame workflow requires the tracked local SDK patches in `docs\rexglue_patches\`. Apply them from `tools\rexglue-sdk` before rebuilding/installing ReXGlue:
+- The current first-frame workflow requires only the minimal tracked local SDK patches in `docs\rexglue_patches\`. Apply them from `tools\rexglue-sdk` before rebuilding/installing ReXGlue:
 
 ```cmd
 cd /d D:\360RexGlue\TheOutFit\tools\rexglue-sdk
 git apply ..\..\docs\rexglue_patches\0001-use-manual-switch-tables-during-block-discovery.patch
 git apply ..\..\docs\rexglue_patches\0002-tolerate-modifier-only-physical-protection.patch
-git apply ..\..\docs\rexglue_patches\0003-defer-d3d12-primary-submission-with-pending-uav-work.patch
 ```
 
-- Patch `0001` makes manual switch-table labels participate in block discovery for the `0x8269AB34` bctr state switch. Patch `0002` treats modifier-only physical allocation protection such as `0x400` (`X_PAGE_WRITECOMBINE`) as read/write, removing the final `MmAllocatePhysicalMemoryEx: bad protection bits` errors seen before first frame. Patch `0003` adds a conservative D3D12 primary-buffer submission guard for pending UAV/EDRAM work; it is tracked as a partial diagnostic/runtime guard and is not independently sufficient to fix the current TDR.
+- Patch `0001` makes manual switch-table labels participate in block discovery for the `0x8269AB34` bctr state switch. Patch `0002` treats modifier-only physical allocation protection such as `0x400` (`X_PAGE_WRITECOMBINE`) as read/write, removing the final `MmAllocatePhysicalMemoryEx: bad protection bits` errors seen before first frame.
+- Patch `0003` is no longer classified as required. It adds a conservative D3D12 primary-buffer submission guard for pending UAV/EDRAM work, but it is not independently sufficient to fix the current TDR and should be applied only for comparison or diagnostic experiments.
 
-Optional shared-memory diagnostic patch:
+Optional D3D12 diagnostic/experimental patches:
 
 ```cmd
+git apply ..\..\docs\rexglue_patches\0003-defer-d3d12-primary-submission-with-pending-uav-work.patch
 git apply ..\..\docs\rexglue_patches\0004-diagnose-d3d12-shared-memory-coherency.patch
+git apply ..\..\docs\rexglue_patches\0005-diagnose-d3d12-resolve-coherency-loop.patch
 ```
 
 Current D3D12 comparison command shape after the `0x827558F0` thunk-seed pass:

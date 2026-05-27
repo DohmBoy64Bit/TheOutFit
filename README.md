@@ -76,12 +76,12 @@ Apply the tracked local SDK patches from the SDK checkout root:
 cd /d D:\360RexGlue\TheOutFit\tools\rexglue-sdk
 git apply ..\..\docs\rexglue_patches\0001-use-manual-switch-tables-during-block-discovery.patch
 git apply ..\..\docs\rexglue_patches\0002-tolerate-modifier-only-physical-protection.patch
-git apply ..\..\docs\rexglue_patches\0003-defer-d3d12-primary-submission-with-pending-uav-work.patch
 ```
 
-For D3D12 TDR investigation, optional diagnostic patches are also tracked:
+For D3D12 TDR investigation, optional diagnostic/experimental patches are also tracked:
 
 ```cmd
+git apply ..\..\docs\rexglue_patches\0003-defer-d3d12-primary-submission-with-pending-uav-work.patch
 git apply ..\..\docs\rexglue_patches\0004-diagnose-d3d12-shared-memory-coherency.patch
 git apply ..\..\docs\rexglue_patches\0005-diagnose-d3d12-resolve-coherency-loop.patch
 ```
@@ -96,13 +96,26 @@ cmake --preset win-amd64
 cmake --build --preset win-amd64-relwithdebinfo --target install
 ```
 
-The current local workflow requires the tracked patches below:
+The current minimal required local workflow uses:
 
 - `0001-use-manual-switch-tables-during-block-discovery.patch`: makes manual `[[switch_tables]]` labels participate in block discovery.
 - `0002-tolerate-modifier-only-physical-protection.patch`: treats modifier-only physical allocation protection such as `0x400` / `X_PAGE_WRITECOMBINE` as read/write physical memory.
-- `0003-defer-d3d12-primary-submission-with-pending-uav-work.patch`: adds a conservative D3D12 primary-buffer submission guard when pending UAV/EDRAM work is visible. This patch is not independently proven to fix the TDR; it is tracked because it provides the current diagnostic guard used by local SDK builds.
+- `0003-defer-d3d12-primary-submission-with-pending-uav-work.patch`: optional diagnostic/experimental primary-buffer submission guard. It is not currently proven required and did not independently fix the TDR.
 - `0004-diagnose-d3d12-shared-memory-coherency.patch`: optional diagnostics for D3D12 shared-memory mode, tile mapping, upload ranges, state transitions, and UAV barriers. This is not a fix.
 - `0005-diagnose-d3d12-resolve-coherency-loop.patch`: optional diagnostics for render-target resolve source/destination format, destination ranges, dispatch counts, and repeated resolve/coherency batches. It also includes an experimental split after four copied resolve dispatches with pending UAV/coherency work; latest evidence still reproduced `DEVICE_HUNG`, so this is not a fix.
+
+## Xenia Canary Comparison
+
+Recent research-only comparison shows the older non-Canary Xenia D3D12 run failed with a graphics device loss in the same broad class as the ReXGlue TDR, while the current Canary build `canary_experimental@29311ddcd` can survive the same gameplay area with Vulkan, strict D3D12, and `gpu = "any"` on the local AMD RX 7800 XT setup.
+
+Important local Canary config evidence:
+
+- `gpu = "any"` selected the D3D12 path in the captured log.
+- `d3d12_submit_on_primary_buffer_end = true`, so Canary stability does not by itself support permanently disabling primary-buffer-end submission.
+- `readback_resolve = "none"`, `d3d12_bindless = true`, `gpu_allow_invalid_fetch_constants = true`, and CPU-side unclipped draw extent estimation are active research leads.
+- Canary logs still show invalid upload range warnings and missing VFS probes, so those are not automatically fatal for this title.
+
+Use Xenia Canary only as a research reference for backend behavior. Do not copy emulator code or treat Xenia settings as ReXGlue truth without verifying equivalent ReXGlue cvars/source locally.
 
 ## Game Data Setup
 
