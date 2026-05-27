@@ -6,6 +6,8 @@ This repository tracks an experimental native PC bring-up of the Xbox 360 versio
 
 The goal is to make the game run as a native Windows application instead of through a full emulator. This is active reverse-engineering and runtime bring-up work, so the project is not ready for normal play yet.
 
+**AI used for decomp research purposes and ghirdra MCP**
+
 ## Current Status
 
 The port currently reaches the first rendered frame, menus, audio, and gameplay entry.
