@@ -126,7 +126,7 @@ Result: `TheOutFit_Debug.sln` builds successfully through a Visual Studio Makefi
 The Visual Studio debug wrapper passes:
 
 ```cmd
---game_data_root=D:\360RexGlue\TheOutFit\assets\game_files
+--game_data_root=D:\360RexGlue\TheOutFit\assets\game_files --d3d12_submit_on_primary_buffer_end=false
 ```
 
 Direct runtime smoke command matching the VS launch argument:
@@ -148,6 +148,31 @@ theoutfit.exe --game_data_root=D:\360RexGlue\TheOutFit\assets\game_files --log_l
 ```
 
 Result: the process stayed alive until killed by the 120s smoke-test timeout. No first-frame, shader dump, swap, or present evidence was observed. A noisy follow-up showed `IconMappings.map` exists inside `Common\WW2\Locale\English\XModLoc.sga`; extracting that canonical payload locally to ignored `assets\game_files\Common\WW2\Locale\English\IconMappings.map` removed the direct loose-file open failure, but the runtime still did not reach first frame.
+
+Verified D3D12 TDR investigation:
+
+```cmd
+cd /d D:\360RexGlue\TheOutFit\TheOutFit_Port\out\build\win-amd64-relwithdebinfo
+theoutfit.exe --game_data_root=D:\360RexGlue\TheOutFit\assets\game_files --log_level=trace --log_noisy --log_flush_interval=1 --log_file=D:\360RexGlue\TheOutFit\docs\logs\runtime-until-crash.log
+```
+
+Result: local interaction reached first frame, menus, audio, and gameplay entry. A later run failed with `D3D12 device removed: HRESULT 0x887A0006 - DEVICE_HUNG (TDR - GPU command took too long)` and exit `0xC0000409`. Last log evidence before the TDR was repeated GPU resolve/coherency traffic, not an invalid/unregistered guest function.
+
+Diagnostic D3D12 debug/DRED invocation:
+
+```cmd
+theoutfit.exe --game_data_root=D:\360RexGlue\TheOutFit\assets\game_files --log_level=trace --log_noisy --log_flush_interval=1 --d3d12_debug --gpu_debug_markers --trace_gpu_prefix=D:\360RexGlue\TheOutFit\docs\logs\gpu-traces\d3d12-tdr --dump_shaders=D:\360RexGlue\TheOutFit\docs\logs\shader-dumps-tdr --log_file=D:\360RexGlue\TheOutFit\docs\logs\runtime-d3d12-dred.log
+```
+
+Result: DRED was enabled and shaders were dumped, but this changed the run to early exit `0xC000008F` before useful DRED breadcrumbs were emitted.
+
+Current candidate D3D12 mitigation:
+
+```cmd
+theoutfit.exe --game_data_root=D:\360RexGlue\TheOutFit\assets\game_files --log_level=trace --log_noisy --log_flush_interval=1 --d3d12_submit_on_primary_buffer_end=false --log_file=D:\360RexGlue\TheOutFit\docs\logs\runtime-bisect-submit-on-primary-buffer-end-false.log
+```
+
+Result: the rotated log set contained no fatal/error/critical/device-hung lines and ended with clean window shutdown messages. `--direct_host_resolve=false` was also tested and did not prevent `DEVICE_HUNG`.
 
 ## Local SDK Notes
 

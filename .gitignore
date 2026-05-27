@@ -30,6 +30,6 @@ Outfit, The*/
 
 # Local tool/cache output
 tools/
+docs/logs/**
 *.log
-docs/logs/*.png
 *.tmp

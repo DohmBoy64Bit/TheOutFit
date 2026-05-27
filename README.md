@@ -9,7 +9,8 @@ The project is currently ReXGlue-only. It does not use XenonRecomp or XenonAnaly
 - ReXGlue SDK version used locally: `0.8.1.4-dev.ge8ce24f`.
 - Canonical local source artifact: `D:\360RexGlue\TheOutFit\theoutfit.iso`.
 - Canonical extracted game root: `D:\360RexGlue\TheOutFit\assets\game_files`.
-- Current runtime milestone: first rendered frame reached in RelWithDebInfo with no fatal/error/critical lines in the final smoke log.
+- Current runtime milestone: first rendered frame, menus, audio, and gameplay entry reached in RelWithDebInfo.
+- Current active blocker: later D3D12 `DEVICE_HUNG` / TDR can occur during gameplay; first evidence points at heavy resolve/coherency traffic, not a missing guest function.
 - Generated ReXGlue output is reproducible and ignored at `TheOutFit_Port/generated/default`.
 - Local ReXGlue SDK checkout/build output is ignored under `tools/`.
 
@@ -40,7 +41,7 @@ Ignored local inputs include:
 - `*.xex`, `*.iso`, `*.dvd`, `*.xbe`, `*.wad`
 - `TheOutFit_Port/generated/default/`
 - `TheOutFit_Port/out/`
-- `docs/logs/*.png`
+- `docs/logs/`
 - `tools/`
 
 Document local assets in `docs/asset_ledger.md` before using them as evidence. Do not commit the assets themselves.
@@ -162,6 +163,12 @@ Final verified result:
 - `runtime-first-frame-no-errors.log` had no fatal/error/critical lines.
 - Repeated GPU `Resolve` progress was present.
 
+Latest runtime stability note:
+
+- A later unlimited visible run reached menu/audio/gameplay flow, then hit `D3D12 device removed: HRESULT 0x887A0006 - DEVICE_HUNG`.
+- `--direct_host_resolve=false` did not prevent the TDR.
+- `--d3d12_submit_on_primary_buffer_end=false` produced a playable run with no logged fatal/error/critical/device-hung lines before window shutdown, so it is the current candidate mitigation to keep testing.
+
 Logs remain ignored.
 
 ## Visual Studio Debugging
@@ -175,7 +182,7 @@ TheOutFit_Port\out\build\win-amd64-relwithdebinfo\theoutfit.exe
 The debug wrapper passes:
 
 ```cmd
---game_data_root=D:\360RexGlue\TheOutFit\assets\game_files
+--game_data_root=D:\360RexGlue\TheOutFit\assets\game_files --d3d12_submit_on_primary_buffer_end=false
 ```
 
 Do not replace this with a normal MSVC-generated project unless the generated ReXGlue C++ and SDK are verified to build under that path.
