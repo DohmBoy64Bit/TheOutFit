@@ -1,0 +1,202 @@
+diff --git a/include/rex/graphics/d3d12/shared_memory.h b/include/rex/graphics/d3d12/shared_memory.h
+index 0a1bb3f..10cbe0f 100644
+--- a/include/rex/graphics/d3d12/shared_memory.h
++++ b/include/rex/graphics/d3d12/shared_memory.h
+@@ -98,6 +98,12 @@ class D3D12SharedMemory : public SharedMemory {
+   std::vector<ID3D12Heap*> buffer_tiled_heaps_;
+   D3D12_RESOURCE_STATES buffer_state_ = D3D12_RESOURCE_STATE_COPY_DEST;
+   bool buffer_uav_writes_commit_needed_ = false;
++  bool tiled_shared_memory_active_ = false;
++  uint64_t sparse_allocation_count_ = 0;
++  uint64_t upload_ranges_call_count_ = 0;
++  uint64_t upload_copy_count_ = 0;
++  uint64_t transition_count_ = 0;
++  uint64_t uav_barrier_count_ = 0;
+   void CommitUAVWritesAndTransitionBuffer(D3D12_RESOURCE_STATES new_state);
+ 
+   // Non-shader-visible buffer descriptor heap for faster binding (via copying
+diff --git a/src/graphics/d3d12/shared_memory.cpp b/src/graphics/d3d12/shared_memory.cpp
+index 8637a62..bbe60f7 100644
+--- a/src/graphics/d3d12/shared_memory.cpp
++++ b/src/graphics/d3d12/shared_memory.cpp
+@@ -27,6 +27,14 @@ REXCVAR_DEFINE_BOOL(d3d12_tiled_shared_memory, true, "GPU/D3D12",
+ 
+ namespace rex::graphics::d3d12 {
+ 
++namespace {
++
++bool ShouldTraceSharedMemoryEvent(uint64_t counter) {
++  return counter <= 64 || (counter & 0x3FF) == 0;
++}
++
++}  // namespace
++
+ D3D12SharedMemory::D3D12SharedMemory(D3D12CommandProcessor& command_processor,
+                                      memory::Memory& memory, TraceWriter& trace_writer)
+     : SharedMemory(memory), command_processor_(command_processor), trace_writer_(trace_writer) {}
+@@ -40,20 +48,28 @@ bool D3D12SharedMemory::Initialize() {
+ 
+   const ui::d3d12::D3D12Provider& provider = command_processor_.GetD3D12Provider();
+   ID3D12Device* device = provider.GetDevice();
++  bool graphics_analysis_attached = provider.GetGraphicsAnalysis() != nullptr;
+ 
+   D3D12_RESOURCE_DESC buffer_desc;
+   ui::d3d12::util::FillBufferResourceDesc(buffer_desc, kBufferSize,
+                                           D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
+   buffer_state_ = D3D12_RESOURCE_STATE_COPY_DEST;
++  tiled_shared_memory_active_ = false;
+   if (REXCVAR_GET(d3d12_tiled_shared_memory) &&
+       provider.GetTiledResourcesTier() != D3D12_TILED_RESOURCES_TIER_NOT_SUPPORTED &&
+-      !provider.GetGraphicsAnalysis()) {
++      !graphics_analysis_attached) {
+     if (FAILED(device->CreateReservedResource(&buffer_desc, buffer_state_, nullptr,
+                                               IID_PPV_ARGS(&buffer_)))) {
+       REXGPU_ERROR("Shared memory: Failed to create the {} MB tiled buffer", kBufferSize >> 20);
+       Shutdown();
+       return false;
+     }
++    tiled_shared_memory_active_ = true;
++    REXGPU_INFO(
++        "Shared memory diag: mode=reserved_tiled size={}MB tiled_resources_tier={} "
++        "submission={} pending_uav={}",
++        kBufferSize >> 20, uint32_t(provider.GetTiledResourcesTier()),
++        command_processor_.GetCurrentSubmission(), buffer_uav_writes_commit_needed_);
+     static_assert(D3D12_TILED_RESOURCE_TILE_SIZE_IN_BYTES == (1 << 16));
+     InitializeSparseHostGpuMemory(
+         std::max(kHostGpuMemoryOptimalSparseAllocationLog2, uint32_t(16)));
+@@ -63,7 +79,7 @@ bool D3D12SharedMemory::Initialize() {
+         "emulation - video memory usage may increase significantly "
+         "because a full {} MB buffer will be created",
+         kBufferSize >> 20);
+-    if (provider.GetGraphicsAnalysis()) {
++    if (graphics_analysis_attached) {
+       // As of October 8th, 2018, PIX doesn't support tiled buffers.
+       // FIXME(Triang3l): Re-enable tiled resources with PIX once fixed.
+       REXGPU_INFO(
+@@ -77,6 +93,12 @@ bool D3D12SharedMemory::Initialize() {
+       Shutdown();
+       return false;
+     }
++    REXGPU_INFO(
++        "Shared memory diag: mode=committed_full size={}MB tiled_cvar={} tiled_resources_tier={} "
++        "graphics_analysis={} submission={} pending_uav={}",
++        kBufferSize >> 20, REXCVAR_GET(d3d12_tiled_shared_memory),
++        uint32_t(provider.GetTiledResourcesTier()), graphics_analysis_attached,
++        command_processor_.GetCurrentSubmission(), buffer_uav_writes_commit_needed_);
+   }
+   buffer_gpu_address_ = buffer_->GetGPUVirtualAddress();
+   buffer_uav_writes_commit_needed_ = false;
+@@ -181,11 +203,29 @@ void D3D12SharedMemory::BeginSubmission() {
+ void D3D12SharedMemory::CommitUAVWritesAndTransitionBuffer(D3D12_RESOURCE_STATES new_state) {
+   if (buffer_state_ == new_state) {
+     if (new_state == D3D12_RESOURCE_STATE_UNORDERED_ACCESS && buffer_uav_writes_commit_needed_) {
++      ++uav_barrier_count_;
++      if (ShouldTraceSharedMemoryEvent(uav_barrier_count_)) {
++        REXGPU_TRACE(
++            "Shared memory diag: uav_barrier count={} mode={} submission={} state={} "
++            "pending_uav_before={}",
++            uav_barrier_count_, tiled_shared_memory_active_ ? "reserved_tiled" : "committed_full",
++            command_processor_.GetCurrentSubmission(), uint32_t(buffer_state_),
++            buffer_uav_writes_commit_needed_);
++      }
+       command_processor_.PushUAVBarrier(buffer_);
+       buffer_uav_writes_commit_needed_ = false;
+     }
+     return;
+   }
++  ++transition_count_;
++  if (ShouldTraceSharedMemoryEvent(transition_count_)) {
++    REXGPU_TRACE(
++        "Shared memory diag: transition count={} mode={} submission={} old_state={} new_state={} "
++        "pending_uav_before={}",
++        transition_count_, tiled_shared_memory_active_ ? "reserved_tiled" : "committed_full",
++        command_processor_.GetCurrentSubmission(), uint32_t(buffer_state_), uint32_t(new_state),
++        buffer_uav_writes_commit_needed_);
++  }
+   command_processor_.PushTransitionBarrier(buffer_, buffer_state_, new_state);
+   buffer_state_ = new_state;
+   // "UAV -> anything" transition commits the writes implicitly.
+@@ -332,6 +372,7 @@ bool D3D12SharedMemory::AllocateSparseHostGpuMemoryRange(uint32_t offset_allocat
+ 
+   uint32_t offset_bytes = offset_allocations << host_gpu_memory_sparse_granularity_log2();
+   uint32_t length_bytes = length_allocations << host_gpu_memory_sparse_granularity_log2();
++  ++sparse_allocation_count_;
+ 
+   const ui::d3d12::D3D12Provider& provider = command_processor_.GetD3D12Provider();
+   ID3D12Device* device = provider.GetDevice();
+@@ -358,10 +399,25 @@ bool D3D12SharedMemory::AllocateSparseHostGpuMemoryRange(uint32_t offset_allocat
+   region_size.UseBox = FALSE;
+   D3D12_TILE_RANGE_FLAGS range_flags = D3D12_TILE_RANGE_FLAG_NONE;
+   UINT heap_range_start_offset = 0;
++  if (ShouldTraceSharedMemoryEvent(sparse_allocation_count_)) {
++    REXGPU_TRACE(
++        "Shared memory diag: update_tile_mappings begin count={} offset=0x{:08X} length={} "
++        "tiles={} submission={} pending_uav={} state={}",
++        sparse_allocation_count_, offset_bytes, length_bytes, region_size.NumTiles,
++        command_processor_.GetCurrentSubmission(), buffer_uav_writes_commit_needed_,
++        uint32_t(buffer_state_));
++  }
+   direct_queue->UpdateTileMappings(buffer_, 1, &region_start_coordinates, &region_size, heap, 1,
+                                    &range_flags, &heap_range_start_offset, &region_size.NumTiles,
+                                    D3D12_TILE_MAPPING_FLAG_NONE);
+   command_processor_.NotifyQueueOperationsDoneDirectly();
++  if (ShouldTraceSharedMemoryEvent(sparse_allocation_count_)) {
++    REXGPU_TRACE(
++        "Shared memory diag: update_tile_mappings end count={} submission={} pending_uav={} "
++        "state={}",
++        sparse_allocation_count_, command_processor_.GetCurrentSubmission(),
++        buffer_uav_writes_commit_needed_, uint32_t(buffer_state_));
++  }
+   return true;
+ }
+ 
+@@ -370,6 +426,20 @@ bool D3D12SharedMemory::UploadRanges(
+   if (upload_page_ranges.empty()) {
+     return true;
+   }
++  ++upload_ranges_call_count_;
++  uint32_t total_upload_pages = 0;
++  for (const auto& upload_range : upload_page_ranges) {
++    total_upload_pages += upload_range.second;
++  }
++  if (ShouldTraceSharedMemoryEvent(upload_ranges_call_count_)) {
++    REXGPU_TRACE(
++        "Shared memory diag: upload_ranges begin count={} ranges={} pages={} mode={} "
++        "submission={} pending_uav={} state={}",
++        upload_ranges_call_count_, upload_page_ranges.size(), total_upload_pages,
++        tiled_shared_memory_active_ ? "reserved_tiled" : "committed_full",
++        command_processor_.GetCurrentSubmission(), buffer_uav_writes_commit_needed_,
++        uint32_t(buffer_state_));
++  }
+   CommitUAVWritesAndTransitionBuffer(D3D12_RESOURCE_STATE_COPY_DEST);
+   command_processor_.SubmitBarriers();
+   auto& command_list = command_processor_.GetDeferredCommandList();
+@@ -389,6 +459,15 @@ bool D3D12SharedMemory::UploadRanges(
+         REXGPU_ERROR("Shared memory: Failed to get an upload buffer");
+         return false;
+       }
++      ++upload_copy_count_;
++      if (ShouldTraceSharedMemoryEvent(upload_copy_count_)) {
++        REXGPU_TRACE(
++            "Shared memory diag: make_range_valid/upload_copy count={} physical=0x{:08X} "
++            "bytes={} submission={} pending_uav={} state={}",
++            upload_copy_count_, upload_range_start << page_size_log2(),
++            uint32_t(upload_buffer_size), command_processor_.GetCurrentSubmission(),
++            buffer_uav_writes_commit_needed_, uint32_t(buffer_state_));
++      }
+       MakeRangeValid(upload_range_start << page_size_log2(), uint32_t(upload_buffer_size), false);
+       std::memcpy(upload_buffer_mapping,
+                   memory().TranslatePhysical(upload_range_start << page_size_log2()),
+@@ -401,6 +480,12 @@ bool D3D12SharedMemory::UploadRanges(
+       upload_range_length -= upload_buffer_pages;
+     }
+   }
++  if (ShouldTraceSharedMemoryEvent(upload_ranges_call_count_)) {
++    REXGPU_TRACE(
++        "Shared memory diag: upload_ranges end count={} submission={} pending_uav={} state={}",
++        upload_ranges_call_count_, command_processor_.GetCurrentSubmission(),
++        buffer_uav_writes_commit_needed_, uint32_t(buffer_state_));
++  }
+   return true;
+ }
+ 

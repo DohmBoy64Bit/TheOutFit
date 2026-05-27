@@ -79,6 +79,12 @@ git apply ..\..\docs\rexglue_patches\0002-tolerate-modifier-only-physical-protec
 git apply ..\..\docs\rexglue_patches\0003-defer-d3d12-primary-submission-with-pending-uav-work.patch
 ```
 
+For D3D12 TDR investigation, an optional diagnostic patch is also tracked:
+
+```cmd
+git apply ..\..\docs\rexglue_patches\0004-diagnose-d3d12-shared-memory-coherency.patch
+```
+
 Build and install ReXGlue:
 
 ```cmd
@@ -94,6 +100,7 @@ The current local workflow requires the tracked patches below:
 - `0001-use-manual-switch-tables-during-block-discovery.patch`: makes manual `[[switch_tables]]` labels participate in block discovery.
 - `0002-tolerate-modifier-only-physical-protection.patch`: treats modifier-only physical allocation protection such as `0x400` / `X_PAGE_WRITECOMBINE` as read/write physical memory.
 - `0003-defer-d3d12-primary-submission-with-pending-uav-work.patch`: adds a conservative D3D12 primary-buffer submission guard when pending UAV/EDRAM work is visible. This patch is not independently proven to fix the TDR; it is tracked because it provides the current diagnostic guard used by local SDK builds.
+- `0004-diagnose-d3d12-shared-memory-coherency.patch`: optional diagnostics for D3D12 shared-memory mode, tile mapping, upload ranges, state transitions, and UAV barriers. This is not a fix.
 
 ## Game Data Setup
 
@@ -170,8 +177,9 @@ Latest runtime stability note:
 - A later unlimited visible run reached menu/audio/gameplay flow, then hit `D3D12 device removed: HRESULT 0x887A0006 - DEVICE_HUNG`.
 - `--direct_host_resolve=false` did not prevent the TDR.
 - `--d3d12_submit_on_primary_buffer_end=false` alone did not survive later passive smoke testing.
-- `--d3d12_tiled_shared_memory=false` avoided the device-hung path far enough to expose missing guest thunk `0x827558F0`.
-- After seeding `0x827558F0`, `0x82755908`, and `0x82755920`, the best current local runtime path is `--d3d12_tiled_shared_memory=false --d3d12_submit_on_primary_buffer_end=false`; a 120s passive smoke run stayed alive until the harness killed it and showed no matched fatal/error/critical/device-hung lines.
+- `--d3d12_tiled_shared_memory=false` avoided the device-hung path far enough to expose missing guest thunk `0x827558F0`, but later longer/diagnostic runs still reproduced `DEVICE_HUNG`.
+- `--d3d12_tiled_shared_memory=false --d3d12_submit_on_primary_buffer_end=false` is no longer considered stable; it reproduced `DEVICE_HUNG` in a later comparison run.
+- The current active diagnosis is D3D12 resolve/coherency pressure around shared-memory UAV barriers, not a guest missing-function issue.
 
 Logs remain ignored.
 
@@ -186,7 +194,7 @@ TheOutFit_Port\out\build\win-amd64-relwithdebinfo\theoutfit.exe
 The debug wrapper passes:
 
 ```cmd
---game_data_root=D:\360RexGlue\TheOutFit\assets\game_files --d3d12_tiled_shared_memory=false --d3d12_submit_on_primary_buffer_end=false
+--game_data_root=D:\360RexGlue\TheOutFit\assets\game_files
 ```
 
 Do not replace this with a normal MSVC-generated project unless the generated ReXGlue C++ and SDK are verified to build under that path.
