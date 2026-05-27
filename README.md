@@ -10,7 +10,7 @@ The project is currently ReXGlue-only. It does not use XenonRecomp or XenonAnaly
 - Canonical local source artifact: `D:\360RexGlue\TheOutFit\theoutfit.iso`.
 - Canonical extracted game root: `D:\360RexGlue\TheOutFit\assets\game_files`.
 - Current runtime milestone: first rendered frame, menus, audio, and gameplay entry reached in RelWithDebInfo.
-- Current active blocker: later D3D12 `DEVICE_HUNG` / TDR can occur during gameplay; first evidence points at heavy resolve/coherency traffic, not a missing guest function.
+- Current active blocker: later D3D12 `DEVICE_HUNG` / TDR can occur during gameplay; current evidence points at repeated D3D12 resolve/coherency traffic and shared-memory UAV work, not a missing guest function.
 - Generated ReXGlue output is reproducible and ignored at `TheOutFit_Port/generated/default`.
 - Local ReXGlue SDK checkout/build output is ignored under `tools/`.
 
@@ -79,10 +79,11 @@ git apply ..\..\docs\rexglue_patches\0002-tolerate-modifier-only-physical-protec
 git apply ..\..\docs\rexglue_patches\0003-defer-d3d12-primary-submission-with-pending-uav-work.patch
 ```
 
-For D3D12 TDR investigation, an optional diagnostic patch is also tracked:
+For D3D12 TDR investigation, optional diagnostic patches are also tracked:
 
 ```cmd
 git apply ..\..\docs\rexglue_patches\0004-diagnose-d3d12-shared-memory-coherency.patch
+git apply ..\..\docs\rexglue_patches\0005-diagnose-d3d12-resolve-coherency-loop.patch
 ```
 
 Build and install ReXGlue:
@@ -101,6 +102,7 @@ The current local workflow requires the tracked patches below:
 - `0002-tolerate-modifier-only-physical-protection.patch`: treats modifier-only physical allocation protection such as `0x400` / `X_PAGE_WRITECOMBINE` as read/write physical memory.
 - `0003-defer-d3d12-primary-submission-with-pending-uav-work.patch`: adds a conservative D3D12 primary-buffer submission guard when pending UAV/EDRAM work is visible. This patch is not independently proven to fix the TDR; it is tracked because it provides the current diagnostic guard used by local SDK builds.
 - `0004-diagnose-d3d12-shared-memory-coherency.patch`: optional diagnostics for D3D12 shared-memory mode, tile mapping, upload ranges, state transitions, and UAV barriers. This is not a fix.
+- `0005-diagnose-d3d12-resolve-coherency-loop.patch`: optional diagnostics for render-target resolve source/destination format, destination ranges, dispatch counts, and repeated resolve/coherency batches. It also includes an experimental split after four copied resolve dispatches with pending UAV/coherency work; latest evidence still reproduced `DEVICE_HUNG`, so this is not a fix.
 
 ## Game Data Setup
 
@@ -179,7 +181,8 @@ Latest runtime stability note:
 - `--d3d12_submit_on_primary_buffer_end=false` alone did not survive later passive smoke testing.
 - `--d3d12_tiled_shared_memory=false` avoided the device-hung path far enough to expose missing guest thunk `0x827558F0`, but later longer/diagnostic runs still reproduced `DEVICE_HUNG`.
 - `--d3d12_tiled_shared_memory=false --d3d12_submit_on_primary_buffer_end=false` is no longer considered stable; it reproduced `DEVICE_HUNG` in a later comparison run.
-- The current active diagnosis is D3D12 resolve/coherency pressure around shared-memory UAV barriers, not a guest missing-function issue.
+- Patch `0005` confirmed the simple submission-boundary hypothesis is insufficient: the experimental resolve/coherency split fired 107 times with no split failures, but the default run still reproduced `DXGI_ERROR_DEVICE_HUNG`.
+- The current active diagnosis is a D3D12 resolve/coherency path issue around shared-memory UAV barriers and repeated destination ranges, not a guest missing-function issue.
 
 Logs remain ignored.
 
@@ -266,4 +269,4 @@ Never commit:
 
 - Keep first-frame runtime status reproducible after SDK or ReXGlue updates.
 - Decide later whether generated ReXGlue output should remain ignored or become part of a reproducible release workflow.
-- Upstream or otherwise formalize the two local ReXGlue SDK patches if they remain generally useful.
+- Upstream or otherwise formalize durable local ReXGlue SDK patches if they remain generally useful; keep diagnostic-only patches clearly labeled until proven as fixes.
