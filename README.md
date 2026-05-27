@@ -209,6 +209,7 @@ Current `manual_functions.toml` includes coverage for:
 - `0x8226D6A0`
 - `0x827D3DA8`
 - `0x8248C3E0`
+- `0x821ED038`
 - `0x8269A9B0..0x8269BEE0`
 - switch table at `0x8269AB34`
 
