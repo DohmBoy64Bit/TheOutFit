@@ -50,6 +50,34 @@ D:\360RexGlue\TheOutFit\theoutfit.iso
 
 Both are ignored and must remain local.
 
+## ISO And Game Asset Extraction
+
+You need your own legally owned copy of the Xbox 360 game. Place the local ISO at the canonical path used by this workspace:
+
+```text
+D:\360RexGlue\TheOutFit\theoutfit.iso
+```
+
+Extract the ISO into the ignored game data folder:
+
+```text
+D:\360RexGlue\TheOutFit\assets\game_files
+```
+
+This workspace has used `extract-xiso` for the local extraction. The exact command can vary by tool build, but the important result is that the extracted entrypoint exists here:
+
+```text
+D:\360RexGlue\TheOutFit\assets\game_files\default.xex
+```
+
+Launch the port with that extracted folder as the game data root:
+
+```cmd
+--game_data_root=D:\360RexGlue\TheOutFit\assets\game_files
+```
+
+Keep the ISO and extracted files out of Git. `docs/asset_ledger.md` records local hashes and evidence, but not game content.
+
 ## Project Layout
 
 | Path | Purpose |
