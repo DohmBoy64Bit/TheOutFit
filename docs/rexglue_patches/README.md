@@ -13,6 +13,7 @@ Optional D3D12 TDR diagnostics:
 
 ```powershell
 git apply ..\..\docs\rexglue_patches\0004-diagnose-d3d12-shared-memory-coherency.patch
+git apply ..\..\docs\rexglue_patches\0005-diagnose-d3d12-resolve-coherency-loop.patch
 ```
 
 After applying, rebuild and install the SDK, then rebuild the port:
@@ -29,5 +30,6 @@ Patch summary:
 - `0002-tolerate-modifier-only-physical-protection.patch`: treats modifier-only physical-memory protection such as `X_PAGE_WRITECOMBINE` (`0x400`) as read/write physical memory, matching the successful first-frame runtime evidence.
 - `0003-defer-d3d12-primary-submission-with-pending-uav-work.patch`: makes D3D12 primary-buffer-end submission conservative when shared memory, scaled resolve, or EDRAM UAV work still appears uncommitted. Evidence so far shows this is a useful diagnostic guard but not a complete TDR fix by itself; later comparison runs reproduced `DEVICE_HUNG` even with the earlier flag pair.
 - `0004-diagnose-d3d12-shared-memory-coherency.patch`: adds trace diagnostics for D3D12 shared-memory allocation mode, tile mapping, upload ranges, state transitions, and UAV barriers. This patch is for evidence capture only and is not a runtime fix.
+- `0005-diagnose-d3d12-resolve-coherency-loop.patch`: adds render-target resolve diagnostics for source/destination format, destination range, dispatch counts, and repeated resolve/coherency batches. It also contains an experimental split after four copied resolve dispatches with pending UAV/coherency work. Evidence from the default run still reproduced `DXGI_ERROR_DEVICE_HUNG`, so this patch is diagnostic evidence, not a permanent fix.
 
 Evidence is recorded in `docs/regression_log.md` and `docs/address_ledger.md`.
