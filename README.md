@@ -198,13 +198,15 @@ Build output is ignored.
 
 ```cmd
 cd /d D:\360RexGlue\TheOutFit\TheOutFit_Port\out\build\win-amd64-relwithdebinfo
-theoutfit.exe --game_data_root=D:\360RexGlue\TheOutFit\assets\game_files
+theoutfit.exe
 ```
+
+The executable auto-detects extracted game files in `game_files` beside the executable, `assets\game_files` beside the executable, or the same folders in nearby parent directories. You can still override the detected path explicitly with `--game_data_root=<path>`.
 
 For debugging, use trace logging:
 
 ```cmd
-theoutfit.exe --game_data_root=D:\360RexGlue\TheOutFit\assets\game_files --log_level=trace --log_noisy --log_flush_interval=1 --log_file=D:\360RexGlue\TheOutFit\docs\logs\runtime-smoke.log
+theoutfit.exe --log_level=trace --log_noisy --log_flush_interval=1 --log_file=D:\360RexGlue\TheOutFit\docs\logs\runtime-smoke.log
 ```
 
 Logs are ignored and should not be uploaded.
@@ -217,7 +219,7 @@ Open:
 TheOutFit_Port\TheOutFit_Debug.sln
 ```
 
-This solution is a small wrapper around the verified CMake/Ninja/Clang build. It launches the RelWithDebInfo executable with the expected `--game_data_root` argument.
+This solution is a small wrapper around the verified CMake/Ninja/Clang build. It launches the RelWithDebInfo executable and uses the same automatic game-data folder detection as direct runs.
 
 ## Current Technical Notes
 

@@ -25,7 +25,7 @@
     <NMakeCleanCommandLine>cmd /d /c "call &quot;C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat&quot; &amp;&amp; set PATH=C:\Program Files\LLVM\bin;%PATH% &amp;&amp; cmake --build --preset win-amd64-relwithdebinfo --target clean"</NMakeCleanCommandLine>
     <NMakeOutput>$(MSBuildProjectDirectory)\out\build\win-amd64-relwithdebinfo\theoutfit.exe</NMakeOutput>
     <LocalDebuggerCommand>$(MSBuildProjectDirectory)\out\build\win-amd64-relwithdebinfo\theoutfit.exe</LocalDebuggerCommand>
-    <LocalDebuggerCommandArguments>--game_data_root=D:\360RexGlue\TheOutFit\assets\game_files</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments></LocalDebuggerCommandArguments>
     <LocalDebuggerWorkingDirectory>$(MSBuildProjectDirectory)\out\build\win-amd64-relwithdebinfo</LocalDebuggerWorkingDirectory>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>

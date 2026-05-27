@@ -123,13 +123,16 @@ cd /d D:\360RexGlue\TheOutFit\TheOutFit_Port
 
 Result: `TheOutFit_Debug.sln` builds successfully through a Visual Studio Makefile project. The project delegates build/rebuild/clean to the verified `win-amd64-relwithdebinfo` Ninja/Clang preset and debugs `out\build\win-amd64-relwithdebinfo\theoutfit.exe`.
 
-The Visual Studio debug wrapper passes:
+The current Visual Studio debug wrapper passes no game-data argument. `TheoutfitApp::OnConfigurePaths` auto-detects the extracted game-data folder by looking for `default.xex` in `game_files` or `assets\game_files` beside the executable and nearby parent directories.
+
+Direct runtime smoke command using auto-detected game data:
 
 ```cmd
---game_data_root=D:\360RexGlue\TheOutFit\assets\game_files
+cd /d D:\360RexGlue\TheOutFit\TheOutFit_Port\out\build\win-amd64-relwithdebinfo
+theoutfit.exe
 ```
 
-Direct runtime smoke command matching the VS launch argument:
+The explicit override is still supported:
 
 ```cmd
 cd /d D:\360RexGlue\TheOutFit\TheOutFit_Port\out\build\win-amd64-relwithdebinfo

@@ -7,7 +7,9 @@
 #include <atomic>
 #include <chrono>
 #include <cstdint>
+#include <filesystem>
 #include <thread>
+#include <vector>
 
 #include <rex/logging.h>
 #include <rex/ppc/context.h>
@@ -35,11 +37,24 @@ class TheoutfitApp : public rex::ReXApp {
   // void OnLoadXexImage(std::string& xex_image) override {}
   // void OnPostSetup() override {}
   // void OnCreateDialogs(rex::ui::ImGuiDrawer* drawer) override {}
+  void OnConfigurePaths(rex::PathConfig& paths) override {
+    if (!paths.game_data_root.empty()) {
+      return;
+    }
+
+    const auto exe_dir = paths.config_path.parent_path();
+    for (const auto& candidate : GetGameDataRootCandidates(exe_dir)) {
+      if (std::filesystem::is_regular_file(candidate / "default.xex")) {
+        paths.game_data_root = candidate;
+        return;
+      }
+    }
+  }
+
   void OnShutdown() override {
     REXLOG_INFO("TheOutfit diag: shutdown requested");
     StopMainThreadWatchdog();
   }
-  // void OnConfigurePaths(rex::PathConfig& paths) override {}
 
   void OnPostLoadXexImage() override {
     REXLOG_INFO("TheOutfit diag: XEX image loaded");
@@ -77,6 +92,24 @@ class TheoutfitApp : public rex::ReXApp {
   }
 
  private:
+  static std::vector<std::filesystem::path> GetGameDataRootCandidates(
+      std::filesystem::path root) {
+    std::vector<std::filesystem::path> candidates;
+
+    for (int depth = 0; depth < 6 && !root.empty(); ++depth) {
+      candidates.push_back(root / "game_files");
+      candidates.push_back(root / "assets" / "game_files");
+
+      const auto parent = root.parent_path();
+      if (parent == root) {
+        break;
+      }
+      root = parent;
+    }
+
+    return candidates;
+  }
+
   void StartMainThreadWatchdog(rex::system::XThread* thread) {
     StopMainThreadWatchdog();
     watchdog_running_.store(true);
