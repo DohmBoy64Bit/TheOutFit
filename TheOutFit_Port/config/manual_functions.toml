@@ -21,6 +21,14 @@ name = "sub_8248C3E0_manual"
 size = 0x18
 name = "sub_821ED038_manual"
 
+[functions."826715B8"]
+size = 0x10
+name = "sub_826715B8_manual"
+
+[functions."826715C8"]
+size = 0x10
+name = "sub_826715C8_manual"
+
 [functions."8269A9B0"]
 end = 0x8269BEE0
 name = "sub_8269A9B0"
