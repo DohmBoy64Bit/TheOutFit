@@ -31,4 +31,5 @@ Outfit, The*/
 # Local tool/cache output
 tools/
 *.log
+docs/logs/*.png
 *.tmp

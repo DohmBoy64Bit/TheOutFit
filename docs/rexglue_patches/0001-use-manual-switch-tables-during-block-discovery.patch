@@ -1,0 +1,64 @@
+diff --git a/include/rex/codegen/function_scanner.h b/include/rex/codegen/function_scanner.h
+index ccd10fd..f2fe669 100644
+--- a/include/rex/codegen/function_scanner.h
++++ b/include/rex/codegen/function_scanner.h
+@@ -256,7 +256,9 @@ struct BlockDiscoveryResult {
+ BlockDiscoveryResult discoverBlocks(DecodedBinary& decoded, uint32_t entryPoint,
+                                     const CodeRegion& containingRegion,
+                                     const std::unordered_set<uint32_t>& knownFunctions,
+-                                    uint32_t pdataSize = 0);
++                                    uint32_t pdataSize = 0,
++                                    const std::unordered_map<uint32_t, JumpTable>* manualSwitchTables =
++                                        nullptr);
+ 
+ //=============================================================================
+ // Jump Table Detection
+diff --git a/src/codegen/function_scanner.cpp b/src/codegen/function_scanner.cpp
+index 05fb6bf..b5db98d 100644
+--- a/src/codegen/function_scanner.cpp
++++ b/src/codegen/function_scanner.cpp
+@@ -1813,7 +1813,8 @@ std::optional<JumpTable> detectJumpTable(DecodedBinary& decoded, uint32_t bctrAd
+ BlockDiscoveryResult discoverBlocks(DecodedBinary& decoded, uint32_t entryPoint,
+                                     const CodeRegion& containingRegion,
+                                     const std::unordered_set<uint32_t>& knownFunctions,
+-                                    uint32_t pdataSize) {
++                                    uint32_t pdataSize,
++                                    const std::unordered_map<uint32_t, JumpTable>* manualSwitchTables) {
+   BlockDiscoveryResult result;
+   std::unordered_set<uint32_t> visited;
+   std::unordered_set<uint32_t> blockStarts;
+@@ -1902,7 +1903,19 @@ BlockDiscoveryResult discoverBlocks(DecodedBinary& decoded, uint32_t entryPoint,
+           // bctr - try to detect jump table
+           REXCODEGEN_TRACE("discoverBlocks: bctr at 0x{:08X} in func 0x{:08X}, funcEnd=0x{:08X}",
+                            addr, entryPoint, funcEnd);
+-          auto jt = detectJumpTable(decoded, addr, containingRegion, entryPoint, funcEnd);
++          std::optional<JumpTable> jt;
++          if (manualSwitchTables) {
++            auto manualIt = manualSwitchTables->find(addr);
++            if (manualIt != manualSwitchTables->end()) {
++              jt = manualIt->second;
++              REXCODEGEN_TRACE(
++                  "discoverBlocks: using manual jump table at bctr 0x{:08X} with {} targets", addr,
++                  jt->targets.size());
++            }
++          }
++          if (!jt) {
++            jt = detectJumpTable(decoded, addr, containingRegion, entryPoint, funcEnd);
++          }
+           if (jt) {
+             REXCODEGEN_TRACE("discoverBlocks: detected jump table at bctr 0x{:08X} with {} targets",
+                              addr, jt->targets.size());
+diff --git a/src/codegen/phase_discover.cpp b/src/codegen/phase_discover.cpp
+index cfae8b8..90d7d3f 100644
+--- a/src/codegen/phase_discover.cpp
++++ b/src/codegen/phase_discover.cpp
+@@ -95,7 +95,8 @@ void discoverFunction(CodegenContext& ctx, uint32_t funcAddr,
+   }
+ 
+   // Pass pdataSize so forward branches within function extent are correctly identified
+-  auto result = discoverBlocks(decoded, funcAddr, *region, knownFunctions, pdataSize);
++  auto result =
++      discoverBlocks(decoded, funcAddr, *region, knownFunctions, pdataSize, &ctx.Config().switchTables);
+ 
+   if (result.blocks.empty()) {
+     REXCODEGEN_WARN("Analyze: no blocks found for function 0x{:08X}", funcAddr);

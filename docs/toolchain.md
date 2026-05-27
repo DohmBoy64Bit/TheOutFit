@@ -153,6 +153,15 @@ Result: the process stayed alive until killed by the 120s smoke-test timeout. No
 
 - The first configure attempt failed outside the Visual Studio developer environment because `oldnames.lib` and `msvcrtd.lib` were not visible to the linker.
 - The Windows checkout materialized `libmspack` symlink placeholders as text files because `core.symlinks=false`; local ignored SDK files under `thirdparty/libmspack/cabextract/mspack` were copied from their referenced targets before the install build succeeded.
+- The current first-frame workflow requires the tracked local SDK patches in `docs\rexglue_patches\`. Apply them from `tools\rexglue-sdk` before rebuilding/installing ReXGlue:
+
+```cmd
+cd /d D:\360RexGlue\TheOutFit\tools\rexglue-sdk
+git apply ..\..\docs\rexglue_patches\0001-use-manual-switch-tables-during-block-discovery.patch
+git apply ..\..\docs\rexglue_patches\0002-tolerate-modifier-only-physical-protection.patch
+```
+
+- Patch `0001` makes manual switch-table labels participate in block discovery for the `0x8269AB34` bctr state switch. Patch `0002` treats modifier-only physical allocation protection such as `0x400` (`X_PAGE_WRITECOMBINE`) as read/write, removing the final `MmAllocatePhysicalMemoryEx: bad protection bits` errors seen before first frame.
 
 ## Open Items
 - Add the ReXGlue install `bin` directory to command sessions when invoking `rexglue` directly, or call `rexglue.exe` by full path.

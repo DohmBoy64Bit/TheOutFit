@@ -12,3 +12,49 @@ name = "sub_8226D6A0_manual"
 [functions."827D3DA8"]
 size = 0x18
 name = "sub_827D3DA8_manual"
+
+[functions."8248C3E0"]
+size = 0x20
+name = "sub_8248C3E0_manual"
+
+[functions."8269A9B0"]
+end = 0x8269BEE0
+name = "sub_8269A9B0"
+
+# Verified with Ghidra MCP on 2026-05-26. Auto-detection mapped this
+# state-machine bctr as identity cases, causing the post-fe.sga inflate loop
+# to dispatch to the wrong labels.
+[[switch_tables]]
+address = 0x8269AB34
+register = 10
+labels = [
+  0x8269AB38,
+  0x8269AC90,
+  0x8269AD20,
+  0x8269AD9C,
+  0x8269ADE0,
+  0x8269AE5C,
+  0x8269AEC4,
+  0x8269AF2C,
+  0x8269AF94,
+  0x8269B034,
+  0x8269B074,
+  0x8269B0A0,
+  0x8269B0AC,
+  0x8269B174,
+  0x8269B1E0,
+  0x8269B278,
+  0x8269B348,
+  0x8269B634,
+  0x8269B704,
+  0x8269B8CC,
+  0x8269B938,
+  0x8269BA94,
+  0x8269BB20,
+  0x8269BBC8,
+  0x8269BBF0,
+  0x8269BCD8,
+  0x8269BD7C,
+  0x8269BD84,
+  0x8269BED8,
+]

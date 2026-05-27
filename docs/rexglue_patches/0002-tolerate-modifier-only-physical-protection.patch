@@ -1,0 +1,16 @@
+diff --git a/src/kernel/xboxkrnl/xboxkrnl_memory.cpp b/src/kernel/xboxkrnl/xboxkrnl_memory.cpp
+index 8684eda..1b0ba2f 100644
+--- a/src/kernel/xboxkrnl/xboxkrnl_memory.cpp
++++ b/src/kernel/xboxkrnl/xboxkrnl_memory.cpp
+@@ -351,6 +351,11 @@ u32 MmAllocatePhysicalMemoryEx_entry(u32 flags, u32 region_size, u32 protect_bit
+                        (uint32_t)flags, (uint32_t)region_size, (uint32_t)protect_bits,
+                        (uint32_t)min_addr_range, (uint32_t)max_addr_range, (uint32_t)alignment);
+ 
++  if (!(protect_bits & (X_PAGE_READONLY | X_PAGE_READWRITE)) &&
++      (protect_bits & (X_PAGE_NOCACHE | X_PAGE_WRITECOMBINE))) {
++    protect_bits |= X_PAGE_READWRITE;
++  }
++
+   // Check protection bits.
+   if (!(protect_bits & (X_PAGE_READONLY | X_PAGE_READWRITE))) {
+     REXKRNL_ERROR("MmAllocatePhysicalMemoryEx: bad protection bits");
