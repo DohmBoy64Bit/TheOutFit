@@ -195,6 +195,7 @@ Optional D3D12 diagnostic/experimental patches:
 git apply ..\..\docs\rexglue_patches\0003-defer-d3d12-primary-submission-with-pending-uav-work.patch
 git apply ..\..\docs\rexglue_patches\0004-diagnose-d3d12-shared-memory-coherency.patch
 git apply ..\..\docs\rexglue_patches\0005-diagnose-d3d12-resolve-coherency-loop.patch
+git apply ..\..\docs\rexglue_patches\0006-diagnose-d3d12-host-render-target-extent-and-resolve.patch
 ```
 
 Current D3D12 comparison command shape after the `0x827558F0` thunk-seed pass:

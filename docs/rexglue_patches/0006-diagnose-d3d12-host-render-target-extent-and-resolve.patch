@@ -1,0 +1,79 @@
+diff --git a/include/rex/graphics/d3d12/render_target_cache.h b/include/rex/graphics/d3d12/render_target_cache.h
+index b9d2688..ce73116 100644
+--- a/include/rex/graphics/d3d12/render_target_cache.h
++++ b/include/rex/graphics/d3d12/render_target_cache.h
+@@ -746,6 +746,12 @@ class D3D12RenderTargetCache final : public RenderTargetCache {
+   uint64_t direct_resolve_attempt_count_ = 0;
+   uint64_t direct_resolve_success_count_ = 0;
+   uint64_t direct_resolve_fallback_count_ = 0;
++  uint64_t resolve_diag_count_ = 0;
++  uint64_t resolve_diag_large_count_ = 0;
++  uint32_t resolve_diag_last_dest_start_ = 0;
++  uint32_t resolve_diag_last_dest_length_ = 0;
++  uint32_t resolve_diag_repeat_count_ = 0;
++  uint64_t dump_render_targets_diag_count_ = 0;
+ 
+   // Parameter 0 - 2 root constants (red, green).
+   ID3D12RootSignature* uint32_rtv_clear_root_signature_ = nullptr;
+diff --git a/src/graphics/d3d12/render_target_cache.cpp b/src/graphics/d3d12/render_target_cache.cpp
+index 8e269c4..84c772a 100644
+--- a/src/graphics/d3d12/render_target_cache.cpp
++++ b/src/graphics/d3d12/render_target_cache.cpp
+@@ -1187,6 +1187,28 @@ bool D3D12RenderTargetCache::Resolve(const memory::Memory& memory, D3D12SharedMe
+     return true;
+   }
+ 
++  ++resolve_diag_count_;
++  if (resolve_info.copy_dest_extent_length >= xenos::kEdramSizeBytes / 2) {
++    ++resolve_diag_large_count_;
++  }
++  bool repeated_dest = resolve_info.copy_dest_extent_start == resolve_diag_last_dest_start_ &&
++                       resolve_info.copy_dest_extent_length == resolve_diag_last_dest_length_;
++  resolve_diag_repeat_count_ = repeated_dest ? resolve_diag_repeat_count_ + 1 : 0;
++  resolve_diag_last_dest_start_ = resolve_info.copy_dest_extent_start;
++  resolve_diag_last_dest_length_ = resolve_info.copy_dest_extent_length;
++  if (resolve_diag_count_ <= 128 || repeated_dest || (resolve_diag_count_ & 0xFF) == 0) {
++    REXGPU_TRACE(
++        "D3D12 resolve diag #{} path={} submission={} dest=0x{:08X}+0x{:X} "
++        "base=0x{:08X} repeated={} repeat_count={} large_count={} scale={}x{} "
++        "copy_extent={}x{}",
++        resolve_diag_count_, GetPath() == Path::kHostRenderTargets ? "rtv" : "rov",
++        command_processor_.GetCurrentSubmission(), resolve_info.copy_dest_extent_start,
++        resolve_info.copy_dest_extent_length, resolve_info.copy_dest_base, repeated_dest,
++        resolve_diag_repeat_count_, resolve_diag_large_count_, draw_resolution_scale_x(),
++        draw_resolution_scale_y(), resolve_info.coordinate_info.width_div_8 << 3,
++        resolve_info.height_div_8 << 3);
++  }
++
+   DeferredCommandList& command_list = command_processor_.GetDeferredCommandList();
+ 
+   // Copying.
+@@ -5708,6 +5730,12 @@ bool D3D12RenderTargetCache::TryResolveCopyDirectly(const draw_util::ResolveInfo
+   resolve_info.GetCopyEdramTileSpan(dump_base, dump_row_length_used, dump_rows, dump_pitch);
+   GetResolveCopyDispatchesToDump(dump_base, dump_row_length_used, dump_rows, dump_pitch,
+                                  dump_rectangles_, direct_resolve_dispatches_);
++  REXGPU_TRACE(
++      "D3D12 direct resolve diag attempt={} submission={} base=0x{:08X} row_length={} "
++      "rows={} pitch={} rectangles={} dispatches={}",
++      direct_resolve_attempt_count_, command_processor_.GetCurrentSubmission(), dump_base,
++      dump_row_length_used, dump_rows, dump_pitch, dump_rectangles_.size(),
++      direct_resolve_dispatches_.size());
+   if (direct_resolve_dispatches_.empty()) {
+     return false;
+   }
+@@ -5744,6 +5772,15 @@ bool D3D12RenderTargetCache::DumpRenderTargets(uint32_t dump_base, uint32_t dump
+ 
+   GetResolveCopyRectanglesToDump(dump_base, dump_row_length_used, dump_rows, dump_pitch,
+                                  dump_rectangles_);
++  ++dump_render_targets_diag_count_;
++  if (dump_render_targets_diag_count_ <= 128 || (dump_render_targets_diag_count_ & 0xFF) == 0 ||
++      dump_rectangles_.size() > 1) {
++    REXGPU_TRACE(
++        "D3D12 dump render targets diag #{} submission={} base=0x{:08X} row_length={} "
++        "rows={} pitch={} rectangles={}",
++        dump_render_targets_diag_count_, command_processor_.GetCurrentSubmission(), dump_base,
++        dump_row_length_used, dump_rows, dump_pitch, dump_rectangles_.size());
++  }
+   if (dump_rectangles_.empty()) {
+     return true;
+   }

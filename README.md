@@ -84,6 +84,7 @@ For D3D12 TDR investigation, optional diagnostic/experimental patches are also t
 git apply ..\..\docs\rexglue_patches\0003-defer-d3d12-primary-submission-with-pending-uav-work.patch
 git apply ..\..\docs\rexglue_patches\0004-diagnose-d3d12-shared-memory-coherency.patch
 git apply ..\..\docs\rexglue_patches\0005-diagnose-d3d12-resolve-coherency-loop.patch
+git apply ..\..\docs\rexglue_patches\0006-diagnose-d3d12-host-render-target-extent-and-resolve.patch
 ```
 
 Build and install ReXGlue:
@@ -103,6 +104,7 @@ The current minimal required local workflow uses:
 - `0003-defer-d3d12-primary-submission-with-pending-uav-work.patch`: optional diagnostic/experimental primary-buffer submission guard. It is not currently proven required and did not independently fix the TDR.
 - `0004-diagnose-d3d12-shared-memory-coherency.patch`: optional diagnostics for D3D12 shared-memory mode, tile mapping, upload ranges, state transitions, and UAV barriers. This is not a fix.
 - `0005-diagnose-d3d12-resolve-coherency-loop.patch`: optional diagnostics for render-target resolve source/destination format, destination ranges, dispatch counts, and repeated resolve/coherency batches. It also includes an experimental split after four copied resolve dispatches with pending UAV/coherency work; latest evidence still reproduced `DEVICE_HUNG`, so this is not a fix.
+- `0006-diagnose-d3d12-host-render-target-extent-and-resolve.patch`: optional diagnostics for host-render-target resolve extent, repeat count, direct-resolve preflight, and dump rectangle behavior. This is not a fix.
 
 ## Xenia Canary Comparison
 
@@ -114,6 +116,7 @@ Important local Canary config evidence:
 - `d3d12_submit_on_primary_buffer_end = true`, so Canary stability does not by itself support permanently disabling primary-buffer-end submission.
 - `readback_resolve = "none"`, `d3d12_bindless = true`, `gpu_allow_invalid_fetch_constants = true`, and CPU-side unclipped draw extent estimation are active research leads.
 - Canary logs still show invalid upload range warnings and missing VFS probes, so those are not automatically fatal for this title.
+- Canary-mirrored ReXGlue cvar tests did not fix the TDR in local validation: invalid fetch constants, CPU-side unclipped draw extent estimation, ROV render-target path, and explicit RTV all eventually reproduced `DEVICE_HUNG`.
 
 Use Xenia Canary only as a research reference for backend behavior. Do not copy emulator code or treat Xenia settings as ReXGlue truth without verifying equivalent ReXGlue cvars/source locally.
 
