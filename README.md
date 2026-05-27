@@ -78,6 +78,19 @@ Launch the port with that extracted folder as the game data root:
 
 Keep the ISO and extracted files out of Git. `docs/asset_ledger.md` records local hashes and evidence, but not game content.
 
+## Required Game Version
+
+This port expects a legally owned Xbox 360 copy of *The Outfit* extracted locally.
+
+Known local ISO evidence used during development:
+
+- File: `theoutfit.iso`
+- SHA-256: `9112A8E01719FC52749D0A735CD0CF44CE11C9F575714F0467B4EE30F7F5353A`
+- Extracted entrypoint: `assets/game_files/default.xex`
+- `default.xex` SHA-256: `1BD7C232574681D51865C40383581F4157592991998BC6CE085E24CE38325654`
+
+The project does not host, link to, or endorse downloads of copyrighted game files.
+
 ## Project Layout
 
 | Path | Purpose |
